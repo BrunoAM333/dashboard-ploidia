@@ -2,474 +2,548 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard — Análise de Ploidia de Embriões</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dashboard — Ploidia de Embriões Humanos</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --c-bg:       #f7f7f5;
-    --c-card:     #ffffff;
-    --c-border:   #e2e0d8;
-    --c-text:     #1a1a18;
-    --c-muted:    #6b6b67;
-    --c-eup:      #1d7a5f;   /* teal escuro */
-    --c-eup-lt:   #e1f5ee;
-    --c-ane:      #993c1d;   /* coral escuro */
-    --c-ane-lt:   #faece7;
-    --c-nao:      #5f5e5a;   /* cinza */
-    --c-nao-lt:   #f1efe8;
-    --c-blue:     #185fa5;
-    --c-blue-lt:  #e6f1fb;
-    --radius:     10px;
-    --shadow:     0 1px 3px rgba(0,0,0,.07);
-  }
-
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-    background: var(--c-bg);
-    color: var(--c-text);
-    font-size: 14px;
-    line-height: 1.6;
-    padding: 2rem 1.5rem 4rem;
-  }
-
-  .page-header {
-    max-width: 1100px;
-    margin: 0 auto 2rem;
-    border-bottom: 1px solid var(--c-border);
-    padding-bottom: 1.25rem;
-  }
-  .page-header h1 {
-    font-size: 22px;
-    font-weight: 600;
-    letter-spacing: -0.3px;
-  }
-  .page-header p {
-    color: var(--c-muted);
-    font-size: 13px;
-    margin-top: 4px;
-  }
-
-  .grid {
-    display: grid;
-    max-width: 1100px;
-    margin: 0 auto 1.5rem;
-    gap: 1rem;
-  }
-  .grid-4 { grid-template-columns: repeat(4, 1fr); }
-  .grid-2 { grid-template-columns: 1fr 1fr; }
-  .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
-  .grid-1 { grid-template-columns: 1fr; }
-
-  @media (max-width: 860px) {
-    .grid-4 { grid-template-columns: 1fr 1fr; }
-    .grid-2, .grid-3 { grid-template-columns: 1fr; }
-  }
-  @media (max-width: 480px) {
-    .grid-4 { grid-template-columns: 1fr; }
-  }
-
-  .card {
-    background: var(--c-card);
-    border: 1px solid var(--c-border);
-    border-radius: var(--radius);
-    padding: 1.25rem 1.5rem;
-    box-shadow: var(--shadow);
-  }
-
-  .kpi { padding: 1.1rem 1.25rem; }
-  .kpi-label { font-size: 11px; text-transform: uppercase; letter-spacing: .6px;
-                color: var(--c-muted); margin-bottom: 6px; }
-  .kpi-value { font-size: 30px; font-weight: 700; line-height: 1; }
-  .kpi-sub   { font-size: 12px; color: var(--c-muted); margin-top: 4px; }
-  .kpi.eup   { border-left: 3px solid var(--c-eup); }
-  .kpi.ane   { border-left: 3px solid var(--c-ane); }
-  .kpi.nao   { border-left: 3px solid var(--c-nao); }
-  .kpi.tot   { border-left: 3px solid var(--c-blue); }
-  .kpi.eup .kpi-value { color: var(--c-eup); }
-  .kpi.ane .kpi-value { color: var(--c-ane); }
-  .kpi.nao .kpi-value { color: var(--c-nao); }
-  .kpi.tot .kpi-value { color: var(--c-blue); }
-
-  .card-title {
-    font-size: 13px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: .5px;
-    color: var(--c-muted);
-    margin-bottom: 1rem;
-  }
-
-  .chart-wrap { position: relative; width: 100%; }
-  .chart-wrap canvas { width: 100% !important; }
-
-  /* tabela de idades */
-  .idade-table { width: 100%; border-collapse: collapse; margin-top: .5rem; font-size: 13px; }
-  .idade-table th {
-    text-align: left; padding: 6px 10px;
-    background: var(--c-bg); color: var(--c-muted);
-    font-weight: 500; border-bottom: 1px solid var(--c-border);
-  }
-  .idade-table td { padding: 7px 10px; border-bottom: 1px solid var(--c-border); }
-  .dot {
-    display: inline-block; width: 9px; height: 9px;
-    border-radius: 50%; margin-right: 6px; vertical-align: middle;
-  }
-
-  /* seção metodologia */
-  .metodologia {
-    max-width: 1100px;
-    margin: 0 auto;
-    background: var(--c-card);
-    border: 1px solid var(--c-border);
-    border-radius: var(--radius);
-    padding: 1.5rem 2rem;
-  }
-  .metodologia h2 {
-    font-size: 15px; font-weight: 600; margin-bottom: 1rem;
-    border-bottom: 1px solid var(--c-border); padding-bottom: .5rem;
-  }
-  .metodologia h3 { font-size: 13px; font-weight: 600; margin: 1rem 0 .4rem; }
-  .metodologia p, .metodologia li { font-size: 13px; color: #3a3a38; line-height: 1.7; }
-  .metodologia ul { padding-left: 1.2rem; }
-  .badge {
-    display: inline-block; font-size: 11px; padding: 2px 8px;
-    border-radius: 4px; font-weight: 500; margin-right: 4px;
-  }
-  .badge.eup { background: var(--c-eup-lt); color: var(--c-eup); }
-  .badge.ane { background: var(--c-ane-lt); color: var(--c-ane); }
-  .badge.nao { background: var(--c-nao-lt); color: var(--c-nao); }
-
-  section-title {
-    display: block;
-    max-width: 1100px;
-    margin: 2rem auto .75rem;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: .7px;
-    color: var(--c-muted);
-    font-weight: 600;
-  }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f6f5f2;--card:#fff;--border:#e0ddd4;--text:#18180f;--muted:#6b6960;
+  --eup:#0f6e56;--eup-lt:#e1f5ee;--ane:#993c1d;--ane-lt:#faece7;
+  --nao:#5f5e5a;--nao-lt:#f1efe8;--blue:#185fa5;--r:10px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+      background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;
+      padding:1.5rem 1.25rem 4rem}
+.wrap{max-width:1120px;margin:0 auto}
+.page-hdr{border-bottom:1px solid var(--border);padding-bottom:1rem;margin-bottom:1.75rem}
+.page-hdr h1{font-size:20px;font-weight:600;letter-spacing:-.3px}
+.page-hdr p{color:var(--muted);font-size:12px;margin-top:3px}
+.sec-nav{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:2rem}
+.sec-nav a{font-size:11px;padding:4px 10px;border:1px solid var(--border);
+            border-radius:20px;color:var(--muted);text-decoration:none;background:var(--card)}
+.sec-nav a:hover{background:var(--bg)}
+.sec-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);
+          font-weight:600;margin:2rem 0 .6rem;padding-left:6px;border-left:3px solid var(--border)}
+.grid{display:grid;gap:.875rem}
+.g4{grid-template-columns:repeat(4,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g2{grid-template-columns:1fr 1fr}
+.g1{grid-template-columns:1fr}
+@media(max-width:860px){.g4,.g3{grid-template-columns:1fr 1fr}.g2{grid-template-columns:1fr}}
+@media(max-width:480px){.g4{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+       padding:1.1rem 1.3rem;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.card-t{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);
+         font-weight:600;margin-bottom:.85rem}
+.kpi{padding:1rem 1.2rem}
+.kpi-lbl{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:5px}
+.kpi-val{font-size:28px;font-weight:700;line-height:1}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:3px}
+.kpi.eup{border-left:3px solid var(--eup)}.kpi.ane{border-left:3px solid var(--ane)}
+.kpi.nao{border-left:3px solid var(--nao)}.kpi.tot{border-left:3px solid var(--blue)}
+.kpi.eup .kpi-val{color:var(--eup)}.kpi.ane .kpi-val{color:var(--ane)}
+.kpi.nao .kpi-val{color:var(--nao)}.kpi.tot .kpi-val{color:var(--blue)}
+.ch{position:relative;width:100%}.ch canvas{width:100%!important}
+.st{width:100%;border-collapse:collapse;font-size:12px;margin-top:.5rem}
+.st th{text-align:left;padding:5px 8px;background:var(--bg);color:var(--muted);
+        font-weight:500;border-bottom:1px solid var(--border)}
+.st td{padding:6px 8px;border-bottom:1px solid var(--border)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:4px;font-weight:500;margin:1px}
+.b-eup{background:var(--eup-lt);color:var(--eup)}.b-ane{background:var(--ane-lt);color:var(--ane)}
+.b-nao{background:var(--nao-lt);color:var(--nao)}
+.info-box{background:var(--bg);border-radius:6px;padding:.65rem .9rem;
+           font-size:11px;color:var(--muted);line-height:1.65;margin-top:.75rem}
+.met{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:1.5rem 1.75rem}
+.met h2{font-size:14px;font-weight:600;border-bottom:1px solid var(--border);padding-bottom:.5rem;margin-bottom:1rem}
+.met h3{font-size:12px;font-weight:600;margin:1rem 0 .3rem}
+.met p,.met li{font-size:12px;color:#3a3a38;line-height:1.7}
+.met ul{padding-left:1.1rem}
+section{scroll-margin-top:1rem}
 </style>
 </head>
 <body>
+<div class="wrap">
 
-<div class="page-header">
-  <h1>Análise de Ploidia de Embriões Humanos</h1>
-  <p>Classificação automática a partir das colunas <em>Embryo Description</em>, <em>Embryo Description Clinisys</em> e <em>Embryo Description Clinisys Detalhes</em></p>
+<div class="page-hdr">
+  <h1>Dashboard — Análise de Ploidia de Embriões Humanos</h1>
+  <p>Classificação automática a partir de registros de embrioscopia com PGT-A.
+     Dados agregados — nenhuma informação individual identificável está presente neste arquivo.</p>
 </div>
 
-<!-- KPIs -->
-<section-title>Visão geral</section-title>
-<div class="grid grid-4">
+<nav class="sec-nav">
+  <a href="#s1">1 · Visão geral</a>
+  <a href="#s2">2 · Perfil das pacientes</a>
+  <a href="#s3">3 · Histórico reprodutivo</a>
+  <a href="#s4">4 · Morfocinética</a>
+  <a href="#s5">5 · Morfologia embrionária</a>
+  <a href="#s6">6 · Metodologia</a>
+</nav>
+
+<!-- ══ SEÇÃO 1 ══ -->
+<section id="s1">
+<div class="sec-lbl">1 · Visão geral da classificação de ploidia</div>
+<div class="grid g4">
   <div class="card kpi tot">
-    <div class="kpi-label">Total de embriões</div>
-    <div class="kpi-value" id="kpi-total">—</div>
+    <div class="kpi-lbl">Total de embriões</div>
+    <div class="kpi-val" id="kv-tot"></div>
     <div class="kpi-sub">registros na base</div>
   </div>
   <div class="card kpi eup">
-    <div class="kpi-label">Euploide</div>
-    <div class="kpi-value" id="kpi-eup">—</div>
-    <div class="kpi-sub" id="kpi-eup-pct">—</div>
+    <div class="kpi-lbl">Euploide</div>
+    <div class="kpi-val" id="kv-eup"></div>
+    <div class="kpi-sub" id="ks-eup"></div>
   </div>
   <div class="card kpi ane">
-    <div class="kpi-label">Aneuploide</div>
-    <div class="kpi-value" id="kpi-ane">—</div>
-    <div class="kpi-sub" id="kpi-ane-pct">—</div>
+    <div class="kpi-lbl">Aneuploide</div>
+    <div class="kpi-val" id="kv-ane"></div>
+    <div class="kpi-sub" id="ks-ane"></div>
   </div>
   <div class="card kpi nao">
-    <div class="kpi-label">Não classificado / Não analisado</div>
-    <div class="kpi-value" id="kpi-nao">—</div>
-    <div class="kpi-sub" id="kpi-nao-pct">—</div>
+    <div class="kpi-lbl">Não classificado</div>
+    <div class="kpi-val" id="kv-nao"></div>
+    <div class="kpi-sub" id="ks-nao"></div>
+  </div>
+</div>
+<div class="grid g2" style="margin-top:.875rem">
+  <div class="card">
+    <div class="card-t">Distribuição geral de ploidia</div>
+    <div class="ch" style="height:230px"><canvas id="c-donut"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-t">Motivo de classificação por grupo</div>
+    <div class="ch" style="height:230px"><canvas id="c-motivos"></canvas></div>
+  </div>
+</div>
+</section>
+
+<!-- ══ SEÇÃO 2 ══ -->
+<section id="s2">
+<div class="sec-lbl">2 · Perfil das pacientes</div>
+
+<div class="grid g1">
+  <div class="card">
+    <div class="card-t">Embriões por unidade clínica — Euploide vs. Aneuploide vs. Não classificado</div>
+    <div class="ch" style="height:250px"><canvas id="c-unidade"></canvas></div>
   </div>
 </div>
 
-<!-- Distribuição geral + Motivos -->
-<section-title>Distribuição e motivos de classificação</section-title>
-<div class="grid grid-2">
+<div class="grid g2" style="margin-top:.875rem">
   <div class="card">
-    <div class="card-title">Distribuição geral</div>
-    <div class="chart-wrap" style="height:280px">
-      <canvas id="chart-donut"></canvas>
+    <div class="card-t">Distribuição de idade materna (anos)</div>
+    <div class="ch" style="height:210px"><canvas id="c-age"></canvas></div>
+    <div class="info-box">
+      Espera-se aumento progressivo da taxa de aneuploidia com a idade materna,
+      principalmente acima dos 37 anos, devido à redução da qualidade meiótica oocitária.
     </div>
   </div>
   <div class="card">
-    <div class="card-title">Motivo de classificação</div>
-    <div class="chart-wrap" style="height:280px">
-      <canvas id="chart-motivos"></canvas>
+    <div class="card-t">Estatísticas — idade materna (anos)</div>
+    <table class="st">
+      <thead><tr><th>Grupo</th><th>N</th><th>Média</th><th>DP</th><th>Mediana</th><th>Mín</th><th>Máx</th></tr></thead>
+      <tbody id="tb-age"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="grid g2" style="margin-top:.875rem">
+  <div class="card">
+    <div class="card-t">Distribuição de IMC (kg/m²)</div>
+    <div class="ch" style="height:210px"><canvas id="c-bmi"></canvas></div>
+    <div class="info-box">
+      Registros sem IMC correspondem a pacientes sem aferição no prontuário.
+      Obesidade pode impactar a resposta ovariana e a qualidade embrionária.
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-t">Estatísticas — IMC (kg/m²)</div>
+    <table class="st">
+      <thead><tr><th>Grupo</th><th>N</th><th>Média</th><th>DP</th><th>Mediana</th><th>Mín</th><th>Máx</th></tr></thead>
+      <tbody id="tb-bmi"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="grid g1" style="margin-top:.875rem">
+  <div class="card">
+    <div class="card-t">Diagnóstico materno — Euploide vs. Aneuploide (top 12)</div>
+    <div class="ch" style="height:320px"><canvas id="c-diag"></canvas></div>
+    <div class="info-box">
+      Comparação entre o número de embriões euploide e aneuploide em cada grupo diagnóstico.
+      A proporção entre os grupos pode revelar relação entre etiologia infertilidade e qualidade cromossômica embrionária.
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ══ SEÇÃO 3 ══ -->
+<section id="s3">
+<div class="sec-lbl">3 · Histórico reprodutivo e características do ciclo</div>
+
+<div class="grid g2">
+  <div class="card">
+    <div class="card-t">Origem do oócito por ploidia</div>
+    <div class="ch" style="height:210px"><canvas id="c-src"></canvas></div>
+    <div class="info-box">
+      Homólogo = oócito próprio da paciente · Heterólogo = doação de oócito.
+      Oócitos heterólogos tendem a apresentar menor taxa de aneuploidia por serem de doadoras mais jovens.
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-t">Histórico do oócito (fresco vs. descongelado) por ploidia</div>
+    <div class="ch" style="height:210px"><canvas id="c-hist"></canvas></div>
+    <div class="info-box">
+      Fresco = oócito utilizado no mesmo ciclo de coleta.
+      Descongelado = oócito previamente vitrificado e aquecido para o ciclo atual.
     </div>
   </div>
 </div>
 
-<!-- Por Unidade -->
-<section-title>Por unidade clínica</section-title>
-<div class="grid grid-1">
+<div class="grid g2" style="margin-top:.875rem">
   <div class="card">
-    <div class="card-title">Embriões por unidade — Euploide vs Aneuploide vs Não classificado</div>
-    <div class="chart-wrap" style="height:320px">
-      <canvas id="chart-unidade"></canvas>
+    <div class="card-t">Transferências embrionárias anteriores (ET prévias)</div>
+    <div class="ch" style="height:210px"><canvas id="c-prev"></canvas></div>
+    <div class="info-box">
+      0 = primeira tentativa de transferência. Pacientes com múltiplas tentativas
+      sem sucesso têm maior probabilidade de aneuploidia recorrente.
     </div>
+  </div>
+  <div class="card">
+    <div class="card-t">Oócitos aspirados por ciclo</div>
+    <div class="ch" style="height:210px"><canvas id="c-asp"></canvas></div>
+    <table class="st" style="margin-top:.6rem">
+      <thead><tr><th>Grupo</th><th>N</th><th>Média</th><th>DP</th><th>Mediana</th></tr></thead>
+      <tbody id="tb-asp"></tbody>
+    </table>
+  </div>
+</div>
+</section>
+
+<!-- ══ SEÇÃO 4 ══ -->
+<section id="s4">
+<div class="sec-lbl">4 · Morfocinética — parâmetros de desenvolvimento embrionário (time-lapse)</div>
+
+<div class="card" style="margin-bottom:.875rem">
+  <p style="font-size:12px;color:var(--muted);line-height:1.7">
+    Os parâmetros morfocinéticos registram o tempo (horas após inseminação) de cada evento do desenvolvimento,
+    obtidos pelo sistema de time-lapse (embrioscópio). O gráfico compara as médias entre embriões
+    <span class="badge b-eup">Euploide</span> e <span class="badge b-ane">Aneuploide</span>.
+    Diferenças estatisticamente relevantes podem indicar marcadores preditivos não invasivos de ploidia.
+  </p>
+</div>
+
+<div class="grid g1">
+  <div class="card">
+    <div class="card-t">Média dos parâmetros morfocinéticos por status de ploidia (horas após inseminação)</div>
+    <div class="ch" style="height:300px"><canvas id="c-morf"></canvas></div>
   </div>
 </div>
 
-<!-- Idade -->
-<section-title>Idade materna e ploidia</section-title>
-<div class="grid grid-2">
+<div class="grid g1" style="margin-top:.875rem">
   <div class="card">
-    <div class="card-title">Distribuição de idade por status de ploidia</div>
-    <div class="chart-wrap" style="height:280px">
-      <canvas id="chart-idade"></canvas>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-title">Estatísticas descritivas — Idade (anos)</div>
-    <table class="idade-table">
+    <div class="card-t">Tabela detalhada — morfocinética (média ± DP, em horas)</div>
+    <div style="overflow-x:auto">
+    <table class="st">
       <thead>
         <tr>
-          <th>Status</th>
-          <th>N</th>
-          <th>Média</th>
-          <th>Desvio padrão</th>
+          <th>Parâmetro</th><th>Evento biológico</th>
+          <th style="color:var(--eup)">N Eup.</th>
+          <th style="color:var(--eup)">Média</th>
+          <th style="color:var(--eup)">DP</th>
+          <th style="color:var(--ane)">N Ane.</th>
+          <th style="color:var(--ane)">Média</th>
+          <th style="color:var(--ane)">DP</th>
         </tr>
       </thead>
-      <tbody id="tbody-idade"></tbody>
+      <tbody id="tb-morf"></tbody>
     </table>
-    <p style="margin-top:1rem;font-size:12px;color:var(--c-muted)">
-      Embriões com idade materna ausente foram excluídos desta análise.
-      Espera-se que a taxa de aneuploidia aumente com a idade materna avançada.
-    </p>
-  </div>
-</div>
-
-<!-- Por Diagnóstico -->
-<section-title>Por diagnóstico materno (top 15)</section-title>
-<div class="grid grid-1">
-  <div class="card">
-    <div class="card-title">Total de embriões por diagnóstico — Euploide vs Aneuploide</div>
-    <div class="chart-wrap" style="height:380px">
-      <canvas id="chart-diag"></canvas>
     </div>
   </div>
 </div>
+</section>
 
-<!-- Metodologia -->
-<section-title>Metodologia</section-title>
-<div class="metodologia">
-  <h2>Como a classificação foi realizada</h2>
+<!-- ══ SEÇÃO 5 ══ -->
+<section id="s5">
+<div class="sec-lbl">5 · Morfologia embrionária — parâmetros de qualidade</div>
 
+<div class="grid g2">
+  <div class="card">
+    <div class="card-t">ICM (Massa celular interna) por ploidia</div>
+    <div class="ch" style="height:200px"><canvas id="c-icm"></canvas></div>
+    <div class="info-box">A = excelente · B = bom · C = moderado. ICM avalia a qualidade das células que originarão o embrião propriamente dito.</div>
+  </div>
+  <div class="card">
+    <div class="card-t">TE (Trofoectoderme) por ploidia</div>
+    <div class="ch" style="height:200px"><canvas id="c-te"></canvas></div>
+    <div class="info-box">A = excelente · B = bom · C = moderado. TE avalia a qualidade das células que formarão a placenta e estruturas de suporte.</div>
+  </div>
+</div>
+
+<div class="grid g2" style="margin-top:.875rem">
+  <div class="card">
+    <div class="card-t">Pronúcleos (PN) por ploidia</div>
+    <div class="ch" style="height:200px"><canvas id="c-pn"></canvas></div>
+    <div class="info-box">2 PN = fertilização normal. Valores diferentes (0, 1, 3+) indicam fertilização anormal e estão associados a maior instabilidade cromossômica.</div>
+  </div>
+  <div class="card">
+    <div class="card-t">Fragmentação-2 (categoria) por ploidia</div>
+    <div class="ch" style="height:200px"><canvas id="c-frag2"></canvas></div>
+    <div class="info-box">Percentual de fragmentação celular no dia 2. Menor fragmentação está associada a melhor prognóstico de desenvolvimento e implantação.</div>
+  </div>
+</div>
+
+<div class="grid g2" style="margin-top:.875rem">
+  <div class="card">
+    <div class="card-t">MN-2 (Micronúcleos no dia 2) por ploidia</div>
+    <div class="ch" style="height:200px"><canvas id="c-mn2"></canvas></div>
+    <div class="info-box">Micronúcleos são fragmentos nucleares resultantes de erros de segregação cromossômica. Sua presença está associada a maior taxa de aneuploidia.</div>
+  </div>
+  <div class="card">
+    <div class="card-t">Fragmentação e re-expansão — estatísticas descritivas</div>
+    <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:.3rem">Fragmentação (valor numérico)</div>
+    <table class="st">
+      <thead><tr><th>Grupo</th><th>N</th><th>Média</th><th>DP</th><th>Mediana</th></tr></thead>
+      <tbody id="tb-frag"></tbody>
+    </table>
+    <div style="font-size:11px;font-weight:600;color:var(--muted);margin:.75rem 0 .3rem">Re-expansão (Re-exp Count)</div>
+    <table class="st">
+      <thead><tr><th>Grupo</th><th>N</th><th>Média</th><th>DP</th><th>Mediana</th></tr></thead>
+      <tbody id="tb-reexp"></tbody>
+    </table>
+    <div class="info-box">Re-expansão avalia quantas vezes o blastocisto re-expandiu após retração, podendo indicar instabilidade do trofoblasto.</div>
+  </div>
+</div>
+</section>
+
+<!-- ══ SEÇÃO 6 ══ -->
+<section id="s6">
+<div class="sec-lbl">6 · Metodologia de classificação</div>
+<div class="met">
+  <h2>Como a classificação de ploidia foi realizada</h2>
   <h3>Fonte de dados</h3>
-  <p>
-    A classificação utilizou simultaneamente três colunas textuais do banco de dados de embrioscopia:
-    <strong>Embryo Description</strong> (AM), <strong>Embryo Description Clinisys</strong> (AN) e
-    <strong>Embryo Description Clinisys Detalhes</strong> (AO).
-    As linhas são registros individuais de embriões provenientes de ciclos de fertilização in vitro com PGT-A.
-  </p>
+  <p>Foram utilizadas simultaneamente três colunas textuais do banco de dados:
+  <strong>Embryo Description</strong>, <strong>Embryo Description Clinisys</strong> e
+  <strong>Embryo Description Clinisys Detalhes</strong>, com registros em português e inglês,
+  incluindo variações ortográficas e tipográficas.</p>
 
   <h3>Prioridade entre colunas</h3>
-  <p>
-    A coluna AO (Detalhes) é a mais padronizada e recebe maior prioridade de busca.
-    A avaliação segue a ordem <strong>AO → AN → AM</strong>. Quando há informação classificável em qualquer coluna,
-    ela é utilizada — o resultado <span class="badge ane">Aneuploide</span> prevalece sobre
-    <span class="badge eup">Euploide</span> quando ambos aparecem em colunas distintas do mesmo embrião.
-  </p>
+  <p>A avaliação segue a ordem <strong>Detalhes → Clinisys → Description</strong>.
+  O resultado <span class="badge b-ane">Aneuploide</span> prevalece sobre
+  <span class="badge b-eup">Euploide</span> quando ambos coexistem em colunas distintas do mesmo embrião.</p>
 
   <h3>Regras de classificação por expressão regular</h3>
   <ul>
-    <li>
-      <strong>Não analisado → NaN:</strong> verificado primeiro. Engloba ausência de biópsia
-      (<em>s/biopsia, sem biopsia, NÃO BIOPSIADO</em>), ausência de análise
-      (<em>sem analise, s/analise, N ANALISADO</em>), falhas técnicas
-      (<em>DNA não detectado, sem leitura, Caótico</em>), casos de PGT-M/risco
-      (<em>em risco, haplótipo paterno afetado, Bearer</em>) e registros vazios ou com apenas graduação embrionária.
-    </li>
-    <li>
-      <strong><span class="badge ane">Aneuploide = 1:</span></strong> detectado por palavras-chave como
-      <em>aneuploid(e/óide), aneplóide, alterado, complexo, monossomia, trissomia, mosaico, mosaic,
-      high-level, low-level</em>, além de variações com erros tipográficos
-      (<em>aneuloid, aneuplid</em>). Mosaicos de baixo e alto grau são incluídos nesta categoria.
-    </li>
-    <li>
-      <strong><span class="badge eup">Euploide = 1:</span></strong> detectado por
-      <em>euploid(e/óide), normal, normal/euplóide, baixo risco, low-risk, balanceado, apto para</em>.
-    </li>
+    <li><strong>Não analisado → NaN:</strong> ausência de biópsia, falha de DNA (DNA não detectado, sem leitura),
+    resultado caótico, embrião em risco genético (PGT-M), e registros sem conteúdo classificável.</li>
+    <li><strong><span class="badge b-ane">Aneuploide = 1:</span></strong>
+    aneuploid*, alterado, complexo, monossomia, trissomia, mosaico, high/low-level mosaic,
+    além de variações tipográficas (aneuloid, aneuplid). Mosaicos de qualquer grau são incluídos.</li>
+    <li><strong><span class="badge b-eup">Euploide = 1:</span></strong>
+    euploid*, normal, normal/euplóide, baixo risco, balanceado, apto para.</li>
   </ul>
 
-  <h3>Resultado final</h3>
-  <p>
-    Foram criadas duas colunas binárias (<code>col_euploide</code> e <code>col_aneuploide</code>), mutuamente
-    exclusivas — um embrião recebe valor 1 em apenas uma delas, ou NaN em ambas quando não foi possível
-    determinar a ploidia.
-  </p>
+  <h3>Glossário morfocinético</h3>
+  <ul>
+    <li><strong>t2–t8:</strong> tempo de divisão para 2, 3, 4, 5 e 8 células (horas após inseminação)</li>
+    <li><strong>tSC:</strong> início da primeira clivagem · <strong>tM:</strong> estágio de mórula</li>
+    <li><strong>tB / tEB / tHB:</strong> início de blastulação / blastocisto expandido / blastocisto em eclosão</li>
+    <li><strong>tPNa / tPNf:</strong> aparecimento e desaparecimento dos pronúcleos</li>
+    <li><strong>tSB:</strong> início da compactação celular</li>
+  </ul>
+
+  <h3>Privacidade e segurança</h3>
+  <p>Este dashboard contém exclusivamente estatísticas agregadas geradas localmente.
+  Nenhum identificador individual, ID de paciente, prontuário ou registro unitário
+  foi incluído, transmitido ou hospedado. O arquivo HTML é completamente autocontido.</p>
 </div>
+</section>
 
+</div>
 <script>
-const D = {"total": 16736, "n_eup": 5460, "n_ane": 8498, "n_nao": 2778, "pct_eup": 32.6, "pct_ane": 50.8, "pct_nao": 16.6, "motivos": {"Classificado como Aneuploide": 8498, "Classificado como Euploide": 5460, "Não analisado": 1506, "Todas as colunas vazias": 1203, "Não classificado (revisar)": 69}, "unidades": [{"unidade": "Ibirapuera", "total": 8494, "euploide": 2507, "aneuploide": 4262, "nao_classif": 1725}, {"unidade": "Vila Mariana", "total": 5325, "euploide": 1979, "aneuploide": 2647, "nao_classif": 699}, {"unidade": "Brasilia", "total": 1662, "euploide": 508, "aneuploide": 889, "nao_classif": 265}, {"unidade": "Belo Horizonte", "total": 1255, "euploide": 466, "aneuploide": 700, "nao_classif": 89}], "idades": {"euploide": [41.2, 40.0, 40.4, 37.2, 33.0, 37.6, 36.6, 41.5, 40.9, 36.3, 36.6, 36.1, 34.1, 37.6, 42.4, 38.5, 40.5, 52.0, 38.9, 40.5, 35.6, 39.3, 34.7, 38.2, 42.1, 42.0, 36.1, 27.6, 37.6, 43.9, 44.0, 44.0, 46.9, 45.5, 39.3, 46.9, 41.2, 39.7, 41.4, 40.2, 36.6, 41.1, 30.2, 37.4, 34.7, 37.5, 35.3, 37.5, 48.7, 37.0, 44.4, 33.6, 36.9, 32.2, 38.8, 39.3, 35.4, 39.0, 37.0, 37.4, 40.3, 40.2, 38.6, 36.8, 36.6, 41.2, 37.0, 41.6, 41.6, 44.9, 40.6, 43.3, 41.7, 37.9, 35.8, 37.4, 36.3, 45.6, 38.9, 36.2, 37.6, 38.4, 38.7, 37.1, 39.8, 39.5, 43.0, 39.4, 35.4, 47.2, 38.6, 49.9, 41.9, 43.4, 37.5, 39.6, 37.5, 34.7, 39.4, 34.0, 34.0, 38.9, 33.5, 37.2, 38.0, 35.9, 35.0, 39.3, 33.0, 40.0, 39.2, 31.9, 35.9, 27.9, 39.5, 35.9, 43.5, 43.4, 40.3, 33.9, 36.5, 38.4, 21.8, 33.4, 43.8, 35.9, 32.2, 28.9, 36.4, 36.4, 38.5, 31.5, 38.0, 26.9, 32.9, 33.9, 41.0, 39.6, 45.3, 38.3, 38.6, 37.4, 29.3, 29.3, 29.3, 39.7, 38.0, 46.3, 40.5, 37.3, 36.9, 49.1, 39.4, 40.7, 36.9, 37.9, 34.1, 40.5, 38.1, 0.0, 25.3, 33.7, 33.7, 36.2, 34.4, 34.4, 37.5, 40.6, 44.2, 39.6, 35.7, 35.7, 41.2, 35.7, 40.0, 38.6, 39.6, 41.5, 28.0, 42.3, 38.7, 34.5, 42.3, 34.1, 36.9, 41.7, 40.5, 40.3, 49.6, 39.2, 28.0, 34.2, 34.5, 40.6, 47.6, 49.2, 40.4, 41.5, 34.4, 37.0, 42.7, 43.4, 40.3, 34.7, 32.9, 29.5, 45.7, 40.2, 32.3, 36.9, 46.5, 31.1, 39.2, 39.0, 40.2, 45.5, 46.0, 31.0, 44.4, 48.2, 47.8, 24.9, 42.3, 33.5, 41.0, 36.6, 42.9, 46.3, 30.1, 37.2, 29.7, 44.3, 36.5, 37.2, 45.4, 41.0, 35.7, 39.0, 47.0, 37.1, 38.7, 39.1, 31.2, 43.0, 42.9, 48.2, 47.0, 41.6, 37.3, 38.1, 41.6, 48.8, 41.9, 40.5, 34.3, 48.4, 38.6, 37.3, 37.1, 42.8, 34.0, 37.1, 39.8, 38.8, 39.1, 40.4, 38.5, 43.4, 41.3, 39.7, 39.5, 39.3, 39.0, 37.5, 35.0, 31.8, 33.7, 35.8, 35.5, 35.8, 40.1, 41.9, 41.9, 38.6, 37.9, 43.8, 38.5, 42.9, 33.5, 42.5, 37.8, 36.1, 38.5, 31.8, 42.4, 36.1, 34.5, 38.1, 41.7, 55.6, 48.1, 37.2, 44.2, 32.8, 38.6, 41.7, 42.7, 41.4, 33.4, 42.8, 36.3, 42.9, 46.1, 41.4, 28.8, 0.0, 38.3, 38.7, 39.5, 43.5, 37.4, 39.0, 32.3, 40.0, 37.2, 38.9, 37.7, 36.6, 42.1, 33.1, 35.2, 38.4, 40.0, 36.6, 37.4, 42.5, 27.4, 35.1, 27.6, 38.2, 41.4, 43.9, 34.9, 42.7, 34.4, 44.3, 44.3, 36.0, 37.6, 34.6, 39.1, 34.6, 31.4, 43.3, 44.3, 36.7, 37.4, 39.2, 41.1, 43.2, 40.8, 40.5, 37.5, 39.3, 36.5, 39.1, 32.6, 39.4, 42.4, 42.3, 35.4, 32.5, 32.7, 38.1, 38.2, 38.8, 40.3, 41.9, 40.5, 37.1, 42.2, 37.1, 40.3, 38.8, 36.0, 35.8, 41.2, 34.4, 29.9, 35.8, 36.3, 44.0, 34.6, 46.3, 32.7, 35.5, 37.8, 36.7, 38.7, 43.0, 44.5, 43.0, 37.9, 39.4, 27.0, 38.4, 53.4, 53.4, 40.5, 41.9, 40.5, 42.8, 43.1, 42.6, 32.4, 35.5, 41.6, 37.7, 45.1, 34.6, 34.7, 34.7, 41.4, 37.9, 38.3, 34.8, 45.2, 42.7, 41.8, 34.6, 42.0, 36.6, 39.7, 35.9, 36.6, 44.8, 33.0, 42.4, 39.2, 38.8, 29.7, 31.9, 35.5, 35.9, 38.2, 40.0, 33.6, 42.2, 42.2, 38.8, 37.5, 37.5, 38.3, 45.6, 38.5, 39.7, 41.2, 49.3, 33.9, 42.0, 37.9, 36.5, 39.1, 37.0, 42.3, 33.6, 39.8, 29.3, 37.7, 40.9, 37.7, 39.8, 34.0, 42.7, 40.5, 41.4, 48.4, 37.4, 38.5, 40.5, 40.9, 40.3, 39.2, 33.5, 44.5, 36.0, 37.1, 35.6, 40.9, 34.4, 31.7, 29.9, 39.5, 46.9, 40.7, 45.6, 38.3, 40.3, 33.6, 28.0, 28.0, 39.3, 36.7, 41.1, 44.4, 44.4, 39.5, 32.9, 33.1, 39.7, 37.9, 40.4, 48.0, 34.1, 35.1, 43.0, 37.0, 40.5, 35.5, 37.1, 40.3, 39.6, 41.2, 36.7, 36.7, 41.4, 29.4, 35.0, 35.6, 36.5, 36.1, 32.7, 35.6, 43.8, 51.1, 39.5, 40.6, 41.6, 44.8, 31.0, 35.0, 40.9, 36.2, 47.8, 36.8, 38.4, 38.1, 24.9, 36.1, 42.3, 32.0, 43.6, 41.0, 33.5, 35.0, 36.1, 37.1, 40.3, 41.0, 42.9, 40.6, 42.3, 33.1, 33.1, 32.1, 39.8, 40.9, 50.2, 37.5, 36.6, 37.7, 37.7, 32.6, 39.0, 41.9, 32.6, 40.8, 39.1, 36.7, 39.2, 41.3, 37.6, 42.9, 38.5, 41.6, 35.6, 33.6, 44.6, 48.2, 47.6, 40.4, 38.4, 38.9, 41.6, 41.6, 39.1, 45.5, 30.4, 37.3, 37.7, 39.4, 28.8, 49.9, 42.4, 33.8, 39.6, 39.1, 29.2, 38.6, 39.0, 39.0, 39.9, 33.6, 38.5, 38.5, 42.0, 37.3, 36.7, 35.8, 36.7, 35.4, 39.2, 42.5, 34.4, 38.6, 29.7, 38.6, 37.0, 40.0, 39.1, 44.3, 44.2, 41.4, 45.9, 45.9, 44.2, 42.4, 40.0, 41.4, 41.0, 23.1, 32.1, 38.8, 42.1, 39.4, 37.1, 38.6, 41.7, 40.9, 44.6, 37.0, 32.9, 41.2, 40.9, 33.8, 37.6, 37.4, 33.8, 38.8, 43.8, 40.0, 43.8, 40.1, 40.8, 39.2, 39.1, 36.1, 34.1, 34.1, 42.8, 37.5, 32.2, 37.6, 41.8, 34.6, 31.3, 36.7, 37.5, 38.3, 36.1, 37.6, 32.8, 37.4, 37.9, 35.8, 37.6, 45.6, 36.2, 36.7, 39.3, 36.8, 38.0, 32.5, 39.0, 33.2, 40.6, 38.2, 34.3, 40.6, 45.0, 31.9, 41.1, 33.2, 33.7, 33.7, 37.4, 37.5, 48.7, 47.0, 39.9, 39.1, 44.5, 44.5, 42.4, 33.4, 32.9, 35.4, 36.8, 38.2, 44.7, 41.2, 18.4, 40.3, 33.4, 38.8, 36.7, 45.1, 30.6, 39.9, 36.7, 42.8, 38.6, 39.2, 39.2, 34.4, 49.6, 39.2, 39.4, 34.6, 42.5, 49.1, 37.3, 41.5, 38.9, 37.5, 36.5, 38.6, 43.9, 37.7, 37.5, 39.8, 34.4, 34.9, 44.8, 40.9, 35.4, 38.7, 40.1, 40.3, 41.5, 38.5, 43.4, 33.0, 39.4, 38.3, 37.5, 35.6, 39.1, 41.8, 34.0, 41.0, 30.5, 39.3, 39.7, 39.7, 40.5, 33.0, 34.8, 39.4, 37.4, 37.1, 37.9, 35.7, 37.5, 34.9, 33.9, 38.4, 41.5, 37.1, 37.5, 43.8, 25.1, 39.1, 39.1, 40.9, 43.3, 40.9, 32.9, 32.9, 32.7, 42.4, 39.6, 50.4, 39.6, 37.3, 41.1, 40.5, 29.3, 39.2, 37.6, 39.1, 36.9, 41.7, 41.6, 34.7, 40.5, 34.0, 37.3, 40.7, 40.1, 40.7, 48.4, 44.8, 37.9, 38.5, 35.0, 46.9, 36.2, 1.2, 1.2, 25.6, 33.5, 35.7, 32.8, 38.4, 40.1, 41.5, 38.9, 44.2, 39.9, 31.8, 36.5, 39.4, 38.4, 36.6, 40.5, 38.7, 30.4, 41.1, 35.6, 39.9, 44.0, 37.6, 40.2, 39.6, 37.6, 39.6, 39.5, 45.9, 40.0, 36.5, 40.8, 39.9, 32.2, 41.1, 47.6, 35.6, 31.6, 41.7, 37.0, 42.7, 44.9, 0.8, 45.1, 42.0, 37.1, 38.0, 40.6, 42.0, 42.0, 36.1, 35.2, 46.0, 42.7, 35.3, 52.5, 44.4, 44.0, 35.5, 38.3, 0.4, 35.3, 38.5, 38.4, 40.7, 38.9, 37.5, 35.3, 39.3, 41.9, 37.0, 30.1, 41.2, 38.7, 33.1, 50.0, 42.7, 34.4, 34.4, 40.5, 34.3, 39.0, 35.9, 39.0, 38.6, 47.0, 41.3, 41.3, 38.7, 38.4, 40.1, 42.9, 44.6, 36.4, 38.3, 38.3, 38.9, 37.1, 32.4, 40.5, 35.4, 34.1, 37.0, 34.8, 36.3, 37.1, 35.7, 37.3, 42.9, 39.0, 38.8, 38.1, 34.3, 41.5, 40.4, 50.2, 35.4, 38.5, 39.3, 37.3, 32.8, 38.6, 38.7, 36.9, 39.9, 41.3, 40.8, 36.6, 40.8, 37.0, 40.1, 38.8, 41.6, 35.8, 32.0, 37.8, 42.0, 37.2, 41.2, 29.7, 40.1, 39.5, 37.1, 42.9, 46.4, 38.5, 41.2, 36.4, 33.1, 37.0, 33.1, 44.0, 37.4, 44.2, 40.9, 32.0, 32.0, 32.0, 36.2, 38.9, 35.2, 32.1, 48.1, 44.9, 39.4, 41.7, 40.9, 34.9, 37.9, 45.4, 45.3, 38.3, 35.1, 38.3, 38.7, 36.1, 39.5, 43.5, 36.6, 38.8, 32.8, 40.3, 38.4, 41.5, 34.1, 38.0, 37.4, 34.6, 38.8, 32.7, 35.4, 39.1, 35.7, 38.6, 46.9, 49.2, 40.9, 36.7, 43.2, 33.2, 38.9, 36.3, 31.9, 38.7, 36.4, 45.4, 27.9, 39.1, 38.9, 43.2, 37.4, 35.3, 35.7, 35.2, 35.2, 32.9, 39.1, 36.8, 44.0, 44.5, 50.1, 46.9, 32.9, 35.7, 46.9, 41.9, 37.1, 40.1, 18.4, 41.0, 38.8, 40.5, 36.1, 30.6, 39.0, 31.2, 41.2, 40.2, 34.4, 36.7, 30.1, 51.4, 31.1, 29.9, 35.6, 39.5, 37.8, 36.9, 38.9, 31.2, 49.1, 44.1, 40.0, 32.9, 44.1, 34.4, 44.5, 40.8, 43.0, 39.8, 37.5, 38.2, 41.2, 27.0, 43.4, 43.6, 46.9, 37.2, 40.5, 41.1, 33.0, 38.6, 43.6, 39.4, 36.9, 41.6, 37.1, 35.6, 32.2, 45.5, 40.7, 43.6, 43.6, 40.7, 40.1, 35.1, 36.4, 39.9, 37.3, 37.8, 37.9, 51.3, 33.5, 39.7, 35.9, 28.9, 28.9, 45.9, 26.9, 32.2, 39.6, 40.4, 48.8, 38.3, 38.3, 37.5, 38.6, 44.0, 29.3, 46.3, 37.7, 34.7, 40.8, 34.0, 33.6, 40.7, 41.8, 41.2, 39.2, 39.2, 39.2, 36.2, 44.0, 37.2, 33.6, 38.6, 0.0, 40.2, 25.6, 37.0, 38.0, 39.6, 33.5, 40.1, 31.9, 36.1, 38.2, 34.0, 28.0, 42.3, 34.1, 31.7, 37.0, 39.6, 36.5, 39.6, 40.1, 41.1, 43.6, 40.1, 40.9, 39.9, 44.0, 37.8, 39.0, 37.7, 41.5, 38.8, 39.6, 32.4, 43.5, 38.8, 45.5, 38.4, 38.4, 35.4, 48.0, 38.1, 36.1, 37.0, 37.6, 35.4, 38.6, 35.9, 37.6, 32.9, 32.9, 32.9, 36.8, 45.6, 36.5, 36.1, 38.2, 31.1, 35.6, 49.1, 41.7, 34.6, 40.0, 39.0, 46.4, 40.0, 38.5, 44.8, 40.4, 24.9, 38.2, 41.2, 42.5, 37.0, 39.7, 37.6, 36.1, 38.6, 37.6, 42.3, 44.4, 38.3, 41.1, 37.7, 45.4, 40.6, 36.6, 37.9, 38.7, 40.2, 37.7, 36.0, 38.4, 31.2, 37.7, 39.0, 42.9, 27.9, 35.6, 45.5, 35.4, 38.2, 40.5, 37.0, 35.7, 42.6, 35.8, 37.2, 36.9, 39.1, 42.4, 37.9, 37.1, 38.8, 50.2, 30.6, 38.7, 38.7, 42.5, 39.0, 35.8, 39.5, 36.7, 36.7, 41.6, 40.1, 36.2, 43.2, 36.8, 41.9, 38.6, 39.3, 46.4, 37.6, 35.3, 34.3, 40.5, 43.2, 45.9, 38.5, 32.1, 42.0, 36.7, 42.7, 36.7, 41.4, 37.4, 47.8, 33.4, 33.4, 37.8, 28.0, 38.6, 43.0, 40.6, 40.0, 37.9, 40.0, 39.1, 37.6, 34.9, 37.4, 37.4, 36.3, 33.5, 37.5, 43.9, 43.9, 36.8, 38.9, 42.8, 34.3, 30.4, 40.0, 36.1, 36.1, 32.2, 44.3, 40.1, 42.8, 36.6, 35.1, 38.5, 38.5, 35.7, 38.8, 38.7, 45.5, 39.3, 40.9, 36.3, 43.0, 38.0, 43.2, 30.7, 37.0, 39.5, 41.2, 45.0, 42.2, 41.2, 34.7, 36.2, 40.3, 37.5, 39.1, 42.4, 43.8, 42.6, 36.2, 37.5, 42.4, 46.9, 33.4, 36.2, 37.5, 37.1, 42.2, 36.6, 33.5, 37.1, 41.0, 31.2, 44.9, 33.5, 41.0, 43.3, 39.0, 34.4, 41.6, 41.5, 41.5, 51.4, 43.8, 38.6, 35.2, 39.5, 45.6, 37.3, 36.8, 40.9, 34.3, 37.5, 36.5, 33.6, 40.5, 38.6, 41.8, 40.1, 39.7, 40.9, 37.4, 39.5, 40.9, 41.9, 34.1, 41.6, 39.6, 39.4, 38.8, 39.6, 38.6, 41.8, 45.1, 33.8, 34.7, 41.4, 41.6, 36.8, 36.3, 40.0, 38.5, 36.6, 31.9, 45.5, 40.7, 41.1, 33.5, 30.6, 33.6, 36.6, 30.2, 38.3, 27.9, 37.4, 34.3, 33.5, 37.5, 42.0, 34.8, 40.8, 38.7, 45.6, 33.0, 41.2, 32.4, 35.8, 40.6, 42.1, 32.9, 40.3, 37.3, 42.4, 42.3, 38.3, 35.4, 34.3, 36.2, 36.9, 37.4, 37.7, 42.1, 41.0, 33.1, 31.5, 43.5, 34.7, 37.5, 40.7, 37.3, 36.9, 48.7, 41.6, 36.8, 47.0, 44.2, 35.7, 43.5, 39.6, 42.4, 32.4, 38.1, 35.3, 39.5, 28.0, 39.0, 38.5, 41.0, 40.4, 31.9, 36.1, 37.0, 38.6, 29.9, 33.6, 33.6, 34.1, 44.6, 37.1, 44.0, 49.6, 35.6, 46.7, 37.8, 35.7, 40.6, 38.9, 32.4, 39.5, 49.2, 40.2, 36.9, 39.2, 39.2, 40.6, 33.7, 0.0, 38.6, 37.0, 38.0, 37.7, 41.4, 41.4, 36.7, 38.9, 36.6, 36.6, 43.5, 36.7, 41.3, 38.2, 33.4, 33.4, 46.5, 37.4, 31.1, 51.1, 45.5, 41.7, 31.0, 35.6, 39.1, 38.6, 44.4, 38.1, 36.8, 38.5, 35.3, 37.9, 38.4, 29.8, 34.5, 42.7, 33.5, 40.9, 36.1, 43.4, 28.7, 40.6, 27.6, 36.3, 38.7, 40.6, 41.2, 33.9, 39.6, 37.1, 37.8, 32.1, 37.8, 44.8, 35.4, 36.6, 37.1, 39.7, 39.1, 38.8, 41.9, 41.2, 44.2, 42.9, 37.0, 37.5, 36.4, 35.4, 42.6, 43.6, 38.6, 42.6, 44.1, 40.1, 40.8, 42.4, 43.5, 35.6, 37.7, 37.1, 34.3, 34.3, 29.5, 39.1, 33.8, 39.8, 40.9, 29.2, 42.7, 31.1, 41.0, 38.1, 42.3, 44.9, 39.9, 43.8, 29.7, 29.7, 36.3, 40.6, 29.9, 34.0, 42.9, 43.8, 38.7, 38.7, 31.7, 44.0, 44.2, 39.1, 29.0, 31.7, 39.8, 41.0, 39.5, 47.8, 39.5, 33.4, 38.1, 40.1, 44.1, 37.4, 36.7, 44.7, 40.9, 40.8, 34.6, 37.6, 34.6, 43.8, 40.2, 34.3, 38.2, 47.1, 37.6, 34.1, 36.6, 38.1, 37.5, 36.7, 37.6, 36.9, 34.7, 31.3, 31.3, 36.1, 27.4, 36.1, 32.7, 38.7, 34.4, 37.2, 36.0, 36.0, 35.8, 34.4, 39.1, 42.9, 36.7, 38.8, 29.2, 39.9, 30.7, 33.6, 40.0, 33.2, 40.5, 37.1, 36.3, 41.1, 31.9, 40.5, 35.7, 37.4, 41.6, 37.9, 37.4, 35.3, 39.3, 33.6, 41.7, 42.4, 43.1, 42.4, 32.5, 44.5, 38.1, 32.7, 34.1, 39.4, 37.5, 37.1, 41.2, 40.5, 37.1, 37.8, 18.4, 45.9, 41.6, 41.0, 39.5, 41.6, 36.0, 41.2, 45.1, 41.7, 41.5, 37.6, 31.1, 41.5, 35.7, 34.2, 44.8, 42.5, 32.9, 42.9, 42.0, 36.8, 36.1, 36.1, 39.8, 36.5, 38.7, 27.0, 34.9, 44.0, 32.4, 27.6, 46.9, 42.4, 33.0, 36.8, 39.8, 41.4, 45.1, 39.7, 37.7, 34.8, 38.9, 42.7, 30.6, 35.9, 41.1, 43.6, 38.0, 44.1, 42.2, 38.3, 49.1, 34.4, 34.6, 35.4, 37.1, 27.9, 31.9, 41.7, 38.7, 40.6, 34.9, 34.8, 37.3, 37.1, 43.1, 32.9, 39.1, 40.8, 33.0, 33.5, 39.0, 39.1, 41.2, 44.0, 37.6, 40.3, 38.4, 39.8, 38.9, 40.3, 38.0, 34.6, 38.4, 41.7, 39.0, 40.5, 39.9, 46.3, 39.4, 37.7, 34.7, 41.2, 37.9, 37.9, 41.2, 34.1, 43.8, 48.7, 38.1, 43.4, 47.9, 39.0, 37.7, 40.0, 42.3, 41.2, 40.0, 40.0, 28.9, 38.2, 39.5, 44.2, 40.9, 29.9, 31.4, 35.7, 34.5, 38.3, 34.5, 38.4, 30.4, 34.3, 30.4, 36.0, 49.6, 41.2, 41.5, 40.9, 39.9, 32.4, 32.4, 36.5, 41.4, 43.2, 43.2, 45.9, 35.6, 40.9, 37.6, 40.9, 34.1, 31.9, 37.5, 37.5, 35.2, 41.9, 50.5, 34.1, 46.3, 39.6, 38.7, 37.7, 32.9, 35.2, 36.3, 50.4, 50.4, 32.7, 39.2, 49.1, 40.1, 38.7, 46.4, 46.4, 34.7, 42.2, 41.2, 40.7, 52.0, 39.9, 34.9, 35.1, 41.9, 38.3, 36.2, 39.3, 39.8, 32.1, 32.3, 49.1, 36.1, 29.7, 38.7, 32.3, 42.7, 32.7, 39.3, 39.1, 32.6, 39.4, 37.1, 37.1, 39.3, 37.3, 36.9, 36.9, 25.9, 39.8, 35.5, 38.3, 39.0, 37.9, 38.7, 42.9, 41.4, 41.5, 40.0, 37.1, 37.1, 37.4, 37.5, 37.5, 37.0, 36.2, 37.9, 36.3, 36.9, 37.3, 38.8, 42.8, 38.1, 36.6, 33.8, 50.2, 36.9, 45.1, 50.2, 30.6, 37.8, 39.1, 37.3, 42.5, 38.7, 30.9, 38.6, 39.2, 39.3, 38.1, 39.0, 48.9, 39.5, 38.7, 32.3, 37.3, 39.1, 38.5, 36.4, 33.7, 42.4, 38.3, 40.1, 40.3, 38.9, 41.0, 31.5, 35.3, 39.3, 37.1, 42.9, 37.8, 36.1, 37.4, 31.9, 40.9, 32.0, 34.0, 45.2, 34.8, 48.1, 34.5, 36.2, 43.1, 36.3, 35.8, 32.4, 37.5, 40.2, 29.4, 36.7, 40.1, 39.8, 39.0, 28.8, 38.3, 37.9, 44.1, 35.9, 39.1, 38.1, 32.2, 37.4, 34.3, 37.8, 44.3, 41.0, 41.7, 37.6, 38.8, 37.5, 42.0, 36.9, 44.0, 46.9, 40.4, 44.4, 35.7, 42.3, 37.1, 41.1, 40.9, 36.9, 40.8, 35.3, 35.3, 35.2, 35.2, 35.2, 39.5, 38.3, 40.6, 35.2, 35.2, 35.0, 39.1, 42.9, 34.8, 39.4, 36.0, 40.4, 39.4, 46.9, 39.0, 42.5, 41.1, 33.5, 33.5, 41.2, 43.3, 36.7, 43.3, 31.1, 42.3, 37.9, 29.6, 38.8, 35.8, 42.5, 46.3, 33.1, 33.1, 38.4, 39.8, 38.9, 36.2, 39.0, 38.4, 34.3, 41.0, 37.4, 38.4, 39.7, 39.8, 27.0, 34.9, 41.1, 38.0, 41.9, 39.4, 32.5, 37.1, 39.4, 42.8, 33.5, 38.9, 32.2, 32.2, 33.5, 30.6, 34.6, 35.9, 36.4, 38.0, 38.3, 44.1, 34.0, 42.4, 40.3, 37.4, 37.9, 0.0, 35.5, 38.5, 35.1, 31.9, 41.5, 35.5, 38.4, 33.2, 38.4, 41.0, 41.4, 43.1, 34.9, 37.5, 34.7, 38.8, 35.4, 35.0, 33.0, 42.4, 28.9, 39.7, 32.2, 44.2, 51.4, 42.0, 31.8, 34.4, 38.8, 37.5, 36.9, 39.6, 44.2, 38.9, 34.1, 37.0, 33.1, 37.7, 37.7, 39.4, 33.6, 40.3, 41.8, 40.8, 40.4, 43.6, 37.9, 40.9, 37.5, 43.8, 37.5, 40.9, 47.0, 37.0, 39.6, 38.0, 39.7, 44.5, 39.6, 39.4, 37.6, 40.1, 40.1, 37.9, 38.6, 36.0, 36.0, 34.2, 43.8, 40.6, 35.0, 57.2, 43.8, 39.5, 43.2, 47.1, 39.6, 31.6, 38.8, 35.3, 38.2, 40.9, 34.1, 37.6, 36.7, 43.9, 48.2, 37.0, 39.3, 38.0, 41.7, 35.3, 34.5, 32.9, 38.0, 36.3, 36.6, 33.4, 42.0, 35.6, 36.5, 36.1, 42.7, 32.6, 35.6, 44.0, 44.0, 39.7, 43.5, 39.0, 40.1, 40.1, 43.5, 34.6, 31.7, 37.5, 36.2, 44.4, 34.9, 42.4, 36.9, 38.3, 41.0, 42.1, 40.3, 41.5, 41.7, 36.2, 40.3, 36.2, 35.2, 40.5, 49.1, 33.9, 32.1, 38.2, 30.1, 34.9, 36.6, 38.3, 34.3, 32.6, 41.6, 42.3, 39.0, 47.0, 47.5, 31.2, 35.3, 45.2, 37.7, 32.5, 37.3, 37.1, 31.8, 41.6, 34.5, 32.2, 37.0, 34.3, 34.3, 38.0, 44.1, 35.8, 37.1, 49.9, 34.8, 37.7, 39.0, 49.4, 40.0, 42.2, 42.2, 37.8, 33.8, 40.4, 33.2, 35.4, 34.7, 36.9, 40.8, 37.3, 37.5, 48.0, 38.3, 36.8, 41.6, 39.0, 42.5, 43.4, 41.9, 41.9, 29.9, 35.3, 44.7, 38.5, 42.1, 36.1, 36.4, 33.1, 40.0, 37.8, 34.6, 40.4, 33.1, 42.6, 31.9, 44.2, 33.1, 31.9, 40.5, 31.8, 41.4, 32.1, 40.8, 23.1, 36.8, 32.1, 38.9, 43.1, 41.4, 43.2, 40.0, 37.1, 38.9, 32.4, 37.4, 35.6, 38.1, 35.1, 36.0, 37.4, 34.5, 40.2, 36.1, 35.0, 36.6, 43.5, 38.8, 36.3, 39.1, 37.7, 37.4, 43.9, 43.6, 36.9, 36.8, 42.6, 37.6, 38.8, 27.6, 38.2, 36.0, 40.6, 40.9, 38.5, 34.6, 36.7, 44.0, 38.6, 35.4, 36.4, 39.3, 31.9, 42.3, 39.0, 40.1, 44.4, 33.6, 33.6, 33.6, 36.9, 35.8, 35.8, 40.4, 35.4, 35.4, 39.0, 41.0, 36.9, 41.2, 38.1, 39.2, 38.6, 40.3, 37.1, 38.4, 35.2, 31.2, 44.9, 43.4, 34.3, 39.4, 36.1, 39.2, 41.0, 36.3, 52.3, 39.2, 34.6, 46.3, 40.5, 40.5, 34.5, 37.6, 45.6, 36.8, 38.9, 34.9, 36.1, 35.7, 41.9, 36.2, 39.8, 35.7, 39.8, 36.2, 37.7, 34.4, 39.5, 37.4, 34.1, 38.4, 39.0, 28.8, 38.6, 37.5, 45.8, 28.8, 34.7, 41.5, 37.7, 38.3, 38.3, 45.1, 35.6, 38.8, 38.2, 45.2, 38.5, 43.1, 42.0, 38.0, 39.3, 38.3, 36.3, 33.0, 48.4, 34.8, 27.9, 40.1, 42.6, 33.5, 43.1, 42.2, 36.5, 41.5, 36.7, 51.3, 44.7, 37.5, 35.7, 41.0, 39.7, 39.7, 32.4, 38.4, 42.1, 37.6, 44.0, 35.2, 39.4, 38.6, 32.2, 38.0, 38.0, 27.3, 42.4, 39.6, 48.8, 40.8, 0.1, 41.3, 39.7, 41.9, 37.5, 46.3, 40.9, 39.9, 38.9, 38.9, 40.3, 37.4, 34.2, 41.8, 43.3, 36.5, 43.2, 40.1, 37.8, 43.2, 37.9, 34.1, 43.9, 34.4, 40.9, 38.1, 33.5, 45.7, 40.1, 44.2, 38.2, 39.0, 41.0, 43.8, 45.6, 40.4, 44.6, 37.3, 41.1, 35.6, 35.7, 38.3, 42.7, 41.2, 36.4, 37.6, 40.0, 40.9, 38.8, 40.4, 43.5, 34.1, 42.7, 34.1, 35.5, 44.4, 38.5, 46.6, 39.0, 36.6, 30.6, 37.5, 36.5, 39.7, 45.5, 37.6, 42.7, 34.7, 44.8, 36.7, 37.1, 36.8, 38.6, 37.9, 38.9, 39.0, 43.0, 36.1, 36.2, 33.1, 38.1, 55.2, 36.5, 29.7, 40.9, 37.2, 39.3, 45.7, 39.7, 39.3, 42.6, 32.6, 37.1, 39.6, 47.0, 37.3, 39.5, 35.3, 31.2, 36.3, 37.4, 37.6, 37.6, 35.6, 40.8, 38.7, 36.2, 41.9, 34.5, 45.4, 34.5, 42.6, 42.7, 40.1, 37.5, 32.6, 35.8, 37.2, 37.2, 38.1, 40.1, 29.5, 39.4, 35.8, 30.6, 39.5, 38.8, 37.3, 29.2, 36.3, 36.3, 34.4, 39.0, 41.0, 36.8, 45.3, 42.0, 41.0, 43.3, 38.5, 38.5, 45.8, 36.2, 35.5, 41.2, 37.2, 29.7, 40.1, 37.1, 35.3, 44.7, 38.5, 36.1, 37.4, 34.7, 33.1, 40.9, 41.4, 35.6, 36.9, 35.6, 31.7, 34.8, 35.2, 32.1, 36.1, 35.2, 32.8, 41.7, 37.1, 41.4, 45.9, 33.0, 43.1, 38.0, 42.8, 36.7, 43.9, 0.8, 44.7, 34.1, 40.7, 28.8, 43.5, 38.8, 37.2, 39.5, 39.5, 37.3, 33.5, 41.6, 34.1, 40.4, 36.0, 35.2, 38.4, 38.4, 38.4, 36.6, 37.5, 36.7, 32.2, 37.6, 36.8, 40.3, 37.6, 41.4, 36.1, 39.5, 36.0, 34.9, 35.4, 44.0, 36.7, 40.6, 36.8, 36.3, 38.0, 35.8, 37.5, 36.4, 37.1, 37.4, 39.3, 37.2, 38.1, 40.3, 37.0, 51.8, 38.3, 28.9, 40.1, 39.3, 32.5, 37.6, 35.4, 46.9, 46.9, 36.6, 39.6, 37.1, 36.8, 33.5, 41.0, 32.4, 18.4, 18.4, 30.6, 41.6, 36.0, 38.8, 41.7, 51.4, 36.4, 40.9, 44.4, 34.4, 39.9, 36.2, 47.3, 38.4, 39.1, 36.4, 39.6, 38.9, 42.0, 36.8, 38.4, 31.8, 31.8, 37.8, 41.2, 36.5, 37.7, 38.4, 39.5, 37.2, 39.1, 40.1, 38.6, 41.1, 42.8, 36.9, 39.6, 28.8, 28.8, 41.5, 43.7, 38.2, 37.6, 40.5, 35.5, 41.1, 34.8, 39.1, 38.3, 44.1, 40.0, 35.4, 39.2, 37.1, 27.9, 38.2, 37.7, 38.4, 32.6, 35.8, 34.8, 31.4, 37.5, 34.7, 35.4, 34.9, 51.3, 38.3, 35.3, 25.1, 28.9, 39.1, 31.7, 33.9, 34.4, 38.3, 40.0, 39.4, 33.6, 44.2, 38.9, 38.9, 41.9, 41.4, 37.6, 35.2, 40.5, 40.1, 38.6, 34.6, 33.1, 36.5, 45.0, 41.8, 31.5, 40.7, 39.5, 37.5, 43.8, 42.3, 0.0, 37.2, 45.7, 35.7, 28.9, 42.3, 34.1, 36.6, 34.1, 41.1, 34.8, 40.0, 34.3, 36.7, 39.6, 40.5, 45.9, 47.6, 30.0, 36.9, 33.9, 46.3, 39.6, 45.6, 37.5, 39.4, 39.4, 35.2, 42.5, 46.4, 32.9, 40.0, 46.0, 46.0, 52.5, 31.7, 32.5, 44.4, 36.6, 35.5, 39.4, 38.6, 29.8, 42.3, 36.6, 35.0, 40.6, 34.5, 38.2, 29.6, 71.1, 35.1, 41.2, 27.6, 38.2, 35.2, 42.7, 37.2, 38.5, 32.5, 50.2, 38.8, 44.4, 45.4, 35.7, 38.6, 32.6, 39.6, 32.6, 41.3, 41.3, 38.4, 36.0, 36.0, 36.0, 42.0, 41.2, 39.3, 0.0, 38.1, 43.6, 31.8, 37.0, 30.4, 30.4, 35.7, 36.2, 35.6, 39.6, 39.1, 32.4, 30.6, 37.4, 37.3, 37.0, 29.2, 35.4, 38.1, 38.2, 39.5, 40.8, 31.1, 38.0, 36.8, 38.0, 39.2, 34.4, 39.3, 39.7, 41.0, 43.3, 30.2, 40.4, 42.0, 43.2, 43.4, 41.9, 38.3, 38.5, 41.0, 33.0, 38.6, 39.3, 37.1, 43.8, 31.7, 31.7, 31.7, 40.4, 37.1, 36.8, 39.1, 40.4, 39.1, 31.6, 43.8, 32.1, 32.0, 40.0, 38.1, 39.9, 35.6, 32.0, 38.9, 35.2, 38.6, 38.6, 38.8, 40.9, 34.9, 47.8, 47.8, 32.6, 33.4, 35.1, 46.5, 41.8, 28.0, 36.4, 41.7, 39.9, 39.0, 32.9, 39.6, 37.2, 37.9, 34.9, 34.6, 33.8, 40.2, 34.3, 31.4, 41.5, 38.4, 42.0, 33.1, 36.9, 36.9, 39.5, 37.6, 38.2, 31.3, 29.3, 42.0, 37.0, 36.5, 32.8, 34.4, 40.3, 45.6, 39.9, 39.3, 44.0, 48.5, 36.8, 38.9, 30.7, 33.2, 38.7, 37.0, 40.2, 45.4, 41.1, 37.4, 37.9, 36.2, 37.2, 36.9, 39.0, 39.0, 39.3, 35.4, 44.5, 32.7, 35.4, 40.2, 39.8, 41.2, 36.8, 37.4, 43.3, 44.7, 48.7, 34.3, 42.7, 40.4, 31.2, 45.1, 38.6, 39.2, 42.3, 44.4, 37.6, 37.6, 41.5, 37.2, 34.6, 40.4, 43.6, 36.2, 32.4, 36.8, 38.4, 44.1, 34.3, 33.6, 35.7, 38.0, 37.8, 36.2, 39.8, 39.7, 36.5, 36.5, 42.9, 38.4, 39.1, 32.4, 33.0, 49.9, 42.8, 41.1, 41.5, 33.0, 39.9, 39.4, 35.6, 34.7, 38.8, 36.3, 42.3, 41.0, 36.6, 39.9, 35.9, 43.1, 34.6, 39.3, 36.3, 34.0, 39.2, 38.1, 38.3, 40.3, 33.5, 40.8, 37.8, 41.5, 40.3, 39.6, 44.8, 36.5, 36.5, 41.3, 38.3, 44.7, 41.3, 39.7, 33.0, 35.0, 36.7, 42.9, 41.7, 28.9, 31.8, 38.2, 40.5, 38.3, 34.4, 35.9, 39.6, 37.0, 38.4, 0.3, 34.3, 39.8, 34.1, 29.3, 37.8, 37.7, 37.6, 40.5, 37.0, 41.6, 38.9, 34.6, 33.1, 42.7, 39.9, 33.6, 33.6, 37.9, 40.6, 38.0, 28.8, 41.8, 40.9, 31.8, 35.3, 31.4, 37.4, 35.2, 40.9, 40.9, 48.9, 39.1, 34.8, 28.0, 42.4, 35.6, 39.0, 43.7, 36.4, 32.4, 39.5, 39.3, 42.4, 39.0, 40.0, 46.2, 47.6, 42.8, 32.2, 31.6, 38.8, 35.4, 31.9, 38.1, 38.8, 28.0, 38.2, 38.6, 43.2, 38.4, 34.7, 52.7, 32.9, 45.6, 41.8, 43.5, 43.4, 40.0, 37.6, 43.3, 36.8, 32.9, 40.6, 39.0, 36.2, 71.1, 36.2, 37.1, 38.3, 37.0, 42.0, 49.1, 36.5, 28.9, 35.4, 43.2, 38.3, 36.6, 38.6, 47.5, 36.9, 38.4, 38.7, 35.3, 39.8, 36.7, 24.9, 43.7, 47.0, 36.4, 37.4, 42.6, 38.9, 39.2, 41.6, 36.4, 32.2, 28.1, 38.6, 36.3, 38.2, 37.1, 40.1, 37.3, 37.9, 37.7, 37.8, 38.8, 39.5, 37.2, 40.7, 38.6, 34.4, 39.3, 38.1, 36.3, 33.6, 43.9, 41.2, 48.0, 38.7, 41.2, 35.8, 28.1, 38.3, 39.0, 32.0, 38.5, 40.1, 36.9, 39.3, 39.3, 39.5, 42.9, 35.8, 44.2, 42.6, 36.9, 32.0, 39.8, 41.0, 29.0, 41.1, 43.2, 32.8, 40.9, 37.2, 38.4, 38.0, 35.9, 32.6, 43.6, 39.8, 35.6, 39.4, 44.1, 39.1, 34.4, 39.1, 39.9, 40.1, 35.2, 43.6, 43.5, 55.0, 36.5, 39.6, 39.0, 36.9, 36.3, 40.9, 36.9, 36.9, 38.5, 36.0, 38.4, 36.7, 36.7, 42.6, 39.5, 37.5, 42.1, 39.3, 31.3, 36.1, 29.3, 27.6, 27.6, 36.1, 41.7, 44.5, 41.0, 34.9, 36.0, 41.0, 34.4, 44.3, 27.8, 39.1, 37.6, 38.8, 44.4, 41.6, 38.2, 40.6, 45.0, 37.1, 45.0, 37.4, 38.8, 48.7, 42.5, 34.7, 48.7, 35.2, 39.3, 51.8, 39.1, 34.7, 36.5, 36.2, 32.1, 36.2, 38.1, 39.0, 36.8, 40.4, 44.7, 47.2, 39.8, 37.1, 36.6, 40.9, 43.2, 48.4, 48.4, 18.4, 48.7, 44.9, 43.3, 34.5, 33.1, 40.9, 37.3, 37.6, 34.9, 38.4, 33.5, 37.7, 43.9, 47.0, 38.6, 37.9, 35.6, 36.2, 38.8, 33.6, 32.4, 38.0, 41.7, 28.8, 28.8, 37.5, 37.5, 37.1, 35.5, 41.6, 41.5, 43.7, 36.6, 31.9, 39.0, 37.6, 41.1, 35.9, 34.6, 40.0, 35.9, 36.4, 40.9, 36.3, 37.9, 41.0, 37.4, 32.0, 35.7, 35.5, 38.5, 35.5, 38.2, 37.0, 39.4, 33.9, 38.4, 38.8, 40.2, 36.5, 40.4, 28.2, 39.0, 44.7, 37.5, 43.0, 32.2, 35.9, 43.2, 39.5, 37.9, 39.6, 42.0, 50.4, 50.4, 40.0, 41.1, 44.2, 37.5, 29.3, 35.8, 43.9, 43.9, 34.6, 40.6, 40.4, 41.8, 41.8, 34.2, 39.4, 37.8, 35.1, 41.9, 34.0, 35.6, 37.5, 44.2, 37.3, 31.8, 35.5, 41.2, 36.0, 34.4, 34.4, 39.6, 34.2, 31.4, 39.0, 37.6, 40.1, 36.6, 30.4, 45.3, 57.2, 45.9, 45.0, 32.3, 39.3, 31.4, 37.5, 34.4, 36.1, 43.0, 43.4, 33.9, 39.1, 42.1, 46.6, 35.9, 37.2, 35.0, 48.0, 36.5, 35.1, 35.2, 46.0, 31.0, 36.7, 40.1, 37.6, 36.7, 34.7, 38.3, 36.8, 36.2, 0.4, 38.5, 43.9, 36.2, 38.7, 32.5, 36.6, 38.8, 32.5, 40.3, 39.3, 37.7, 38.3, 36.6, 32.6, 42.6, 38.0, 38.4, 47.5, 37.7, 38.4, 36.0, 45.2, 38.3, 41.3, 32.5, 37.6, 45.5, 48.2, 47.6, 41.4, 37.0, 38.3, 38.1, 41.6, 43.6, 39.8, 39.2, 42.1, 34.8, 28.8, 34.0, 36.6, 43.5, 35.6, 34.3, 32.4, 29.5, 38.7, 39.5, 39.0, 37.4, 41.0, 42.8, 40.4, 39.4, 38.5, 38.5, 37.8, 35.0, 44.9, 44.9, 39.7, 42.5, 40.2, 37.3, 38.5, 36.8, 38.1, 37.5, 40.3, 37.8, 38.2, 35.3, 39.3, 42.9, 37.1, 43.8, 38.5, 37.1, 42.2, 34.6, 38.5, 40.5, 37.7, 45.9, 38.8, 42.0, 32.1, 34.8, 36.2, 40.0, 38.0, 45.4, 33.4, 40.2, 39.2, 37.9, 36.3, 43.7, 55.0, 38.3, 34.5, 40.2, 35.0, 37.6, 40.7, 37.4, 34.3, 34.1, 34.1, 37.4, 36.7, 41.6, 37.2, 39.1, 41.8, 40.0, 35.5, 43.0, 37.4, 29.3, 36.9, 43.9, 32.8, 42.9, 40.2, 37.9, 35.4, 35.7, 42.2, 37.1, 34.5, 33.6, 33.2, 31.9, 36.8, 36.9, 28.9, 33.6, 37.0, 50.1, 38.1, 32.9, 39.2, 50.1, 35.7, 36.9, 40.5, 37.2, 36.4, 40.1, 44.9, 37.8, 39.9, 40.4, 38.6, 30.6, 38.8, 37.6, 51.4, 39.9, 41.5, 44.0, 37.6, 35.6, 36.4, 38.4, 42.5, 36.7, 37.3, 38.9, 43.9, 41.8, 38.9, 39.1, 42.3, 46.9, 37.6, 32.4, 42.4, 35.0, 37.8, 35.5, 36.9, 41.2, 42.8, 41.5, 38.9, 38.7, 30.5, 41.8, 37.6, 30.6, 35.9, 37.2, 35.4, 33.0, 39.6, 40.8, 34.4, 34.6, 37.9, 37.5, 41.7, 30.2, 40.8, 38.1, 35.0, 34.8, 33.2, 40.3, 38.8, 33.0, 39.7, 36.4, 43.4, 35.3, 41.3, 37.9, 39.6, 37.9, 31.8, 32.5, 42.0, 39.7, 37.0, 36.4, 50.4, 45.3, 0.1, 37.6, 35.0, 39.9, 37.7, 37.8, 36.2, 37.3, 40.1, 38.9, 45.0, 43.3, 38.7, 38.3, 38.8, 34.7, 44.0, 38.5, 39.4, 39.0, 37.7, 37.7, 33.5, 39.6, 35.1, 38.5, 38.1, 32.4, 39.5, 36.0, 40.4, 39.9, 31.4, 41.3, 31.7, 40.6, 41.1, 36.4, 42.4, 35.9, 34.3, 40.0, 49.6, 35.6, 34.9, 38.1, 34.2, 43.8, 40.0, 41.4, 43.0, 38.8, 38.8, 49.2, 39.9, 32.3, 38.4, 43.4, 28.0, 42.7, 25.1, 31.5, 31.5, 41.0, 38.6, 39.6, 46.6, 40.7, 52.7, 36.6, 39.0, 35.2, 32.7, 40.2, 39.7, 31.7, 37.6, 42.7, 31.0, 37.5, 31.0, 35.9, 48.0, 36.8, 40.9, 36.6, 36.8, 35.5, 42.4, 39.0, 45.0, 41.4, 30.6, 29.8, 37.5, 41.5, 35.0, 38.5, 71.1, 36.8, 43.8, 36.3, 55.2, 38.7, 42.7, 44.8, 34.4, 41.0, 34.6, 43.2, 42.6, 39.6, 37.8, 39.7, 39.5, 37.7, 36.7, 38.3, 36.0, 41.2, 42.3, 44.2, 37.9, 37.9, 36.4, 35.6, 37.0, 41.6, 44.7, 36.2, 38.1, 32.4, 37.6, 35.4, 34.3, 44.1, 32.6, 42.3, 39.1, 36.6, 39.4, 38.1, 34.4, 36.8, 39.3, 42.7, 39.0, 33.6, 34.7, 38.2, 45.3, 45.3, 36.6, 30.2, 33.2, 38.7, 37.3, 39.1, 40.4, 35.3, 35.8, 36.7, 43.0, 39.9, 41.0, 40.3, 44.5, 42.5, 43.8, 43.8, 29.7, 29.7, 36.2, 38.2, 38.6, 43.8, 37.0, 43.7, 38.5, 38.5, 37.8, 37.8, 35.8, 36.8, 37.1, 39.1, 42.0, 32.0, 32.1, 34.0, 38.7, 36.1, 34.5, 38.1, 38.6, 32.8, 37.1, 42.0, 36.3, 40.9, 39.1, 37.2, 35.7, 35.7, 35.0, 32.1, 37.8, 35.6, 36.7, 41.2, 35.8, 37.8, 32.8, 38.5, 41.1, 37.3, 40.4, 38.5, 36.1, 38.4, 39.1, 41.6, 39.9, 37.5, 37.4, 40.5, 32.8, 30.4, 41.8, 41.6, 27.6, 37.8, 35.1, 34.4, 42.8, 37.9, 36.4, 31.4, 34.6, 39.4, 43.3, 49.2, 36.7, 43.3, 40.3, 43.2, 33.2, 38.9, 38.6, 41.6, 38.7, 34.8, 44.4, 36.8, 36.9, 39.6, 45.0, 42.3, 41.2, 35.6, 36.9, 38.9, 38.8, 47.0, 35.2, 34.7, 37.0, 35.2, 32.6, 42.4, 41.3, 41.7, 35.4, 32.1, 42.4, 40.7, 35.6, 35.6, 34.2, 39.1, 40.9, 37.4, 37.1, 37.8, 47.7, 32.2, 39.0, 39.4, 51.4, 43.8, 37.4, 34.0, 42.5, 38.8, 34.0, 44.0, 39.2, 39.2, 43.8, 32.4, 36.2, 36.2, 37.3, 40.0, 36.8, 38.4, 37.3, 36.5, 36.8, 39.8, 40.6, 35.7, 35.7, 43.9, 43.0, 35.6, 44.8, 40.9, 31.8, 47.2, 42.3, 49.9, 41.1, 32.4, 37.1, 33.0, 43.4, 38.0, 41.4, 37.6, 45.2, 34.0, 40.7, 39.0, 36.6, 42.9, 40.9, 35.4, 37.4, 38.4, 39.7, 32.0, 31.9, 31.9, 41.7, 38.6, 34.9, 38.7, 43.4, 41.5, 38.0, 38.5, 41.0, 34.9, 38.8, 39.7, 40.2, 37.6, 31.8, 33.3, 40.3, 38.3, 45.3, 37.5, 38.9, 38.9, 41.4, 38.6, 29.3, 27.2, 37.6, 37.7, 34.0, 43.9, 43.9, 37.0, 34.6, 42.6, 39.5, 34.2, 44.0, 35.3, 43.5, 38.2, 36.8, 36.5, 39.9, 25.6, 45.7, 43.5, 43.3, 45.2, 34.4, 36.1, 38.2, 37.7, 42.3, 40.8, 35.5, 31.4, 40.3, 37.3, 39.9, 41.5, 35.5, 34.3, 36.0, 40.7, 36.0, 36.3, 45.2, 32.4, 31.4, 38.8, 34.1, 35.7, 35.4, 40.2, 35.1, 36.9, 28.0, 37.5, 38.8, 41.0, 35.5, 39.9, 43.4, 42.1, 36.7, 39.5, 39.4, 40.6, 42.0, 30.2, 46.9, 44.0, 32.7, 37.6, 43.4, 40.7, 44.0, 34.9, 42.4, 39.6, 38.6, 44.5, 42.2, 32.0, 38.4, 43.6, 41.0, 39.9, 33.3, 33.3, 40.6, 43.0, 46.3, 33.6, 49.1, 39.4, 49.1, 50.0, 36.5, 34.4, 40.1, 42.6, 34.3, 39.0, 39.5, 39.4, 31.2, 39.8, 32.5, 42.9, 39.0, 37.9, 43.5, 38.7, 46.2, 36.2, 37.3, 38.4, 45.4, 43.6, 41.9, 35.4, 34.5, 34.5, 34.5, 37.0, 35.8, 42.1, 37.2, 39.0, 37.9, 42.8, 39.6, 39.1, 38.8, 39.1, 33.8, 37.8, 32.4, 39.3, 30.9, 40.9, 38.6, 38.6, 43.1, 38.6, 40.4, 42.7, 42.7, 37.8, 41.7, 36.6, 40.0, 42.0, 37.0, 36.7, 39.1, 30.3, 39.9, 41.6, 41.5, 41.5, 29.7, 38.2, 37.2, 38.6, 37.1, 34.0, 38.7, 46.4, 46.4, 36.1, 45.7, 38.6, 38.6, 45.7, 42.4, 38.5, 40.9, 32.0, 32.1, 35.6, 35.2, 38.6, 39.1, 36.7, 36.5, 36.5, 38.2, 39.2, 35.5, 25.1, 0.0, 39.1, 55.0, 40.0, 40.0, 37.6, 44.1, 43.8, 43.4, 42.0, 42.8, 41.3, 40.1, 43.4, 34.3, 40.3, 32.1, 40.4, 40.5, 40.5, 36.7, 36.6, 43.9, 37.9, 32.8, 41.5, 40.3, 34.7, 31.3, 27.6, 36.7, 37.0, 36.9, 40.2, 34.4, 45.6, 34.6, 39.1, 33.8, 37.8, 44.3, 37.6, 33.6, 39.7, 45.4, 37.5, 39.2, 36.4, 42.3, 33.7, 38.8, 30.2, 35.3, 40.3, 40.3, 39.1, 33.6, 28.9, 36.5, 41.7, 32.1, 43.4, 32.9, 50.1, 36.8, 42.2, 49.2, 36.8, 40.2, 36.8, 37.1, 38.2, 40.9, 43.3, 42.2, 42.2, 36.5, 38.6, 33.4, 40.6, 39.4, 37.6, 37.6, 39.7, 37.6, 37.4, 40.9, 36.9, 39.8, 40.9, 36.2, 36.8, 31.2, 36.1, 44.1, 43.0, 41.0, 40.8, 34.4, 39.6, 27.0, 49.9, 42.8, 42.8, 39.7, 41.6, 36.9, 34.7, 35.0, 39.7, 38.3, 34.0, 39.0, 42.1, 40.2, 35.5, 35.5, 40.6, 39.7, 36.4, 36.2, 38.1, 42.2, 33.0, 37.9, 40.0, 38.4, 37.1, 34.3, 47.6, 33.0, 29.7, 35.9, 30.2, 37.7, 43.9, 37.3, 44.8, 44.2, 34.5, 39.6, 39.1, 40.9, 42.4, 43.8, 32.4, 35.3, 39.0, 35.4, 40.5, 42.4, 42.4, 42.3, 50.4, 39.3, 40.8, 39.8, 37.0, 44.2, 40.7, 37.9, 27.2, 40.5, 36.9, 40.6, 39.2, 46.3, 37.0, 34.7, 34.2, 38.7, 41.4, 40.0, 39.6, 36.7, 38.5, 35.2, 32.8, 32.8, 35.6, 38.1, 38.6, 36.8, 37.5, 1.2, 25.6, 37.0, 33.5, 34.4, 39.6, 38.6, 36.0, 42.3, 37.6, 46.9, 39.6, 41.1, 34.3, 37.4, 33.0, 44.0, 38.3, 35.7, 45.3, 41.2, 40.9, 41.2, 40.5, 41.4, 39.9, 37.5, 39.0, 42.2, 47.6, 37.6, 31.8, 37.5, 35.4, 40.3, 36.1, 34.1, 25.1, 41.2, 37.1, 36.7, 36.3, 45.1, 33.2, 38.3, 30.6, 39.2, 35.2, 38.2, 45.5, 34.6, 46.0, 31.7, 23.4, 31.0, 42.7, 42.7, 39.5, 34.7, 32.5, 48.2, 48.2, 39.6, 44.4, 40.4, 44.1, 39.6, 41.4, 35.0, 35.0, 41.5, 37.5, 34.5, 39.0, 48.9, 40.3, 41.9, 36.8, 27.6, 32.6, 38.2, 37.5, 48.7, 36.7, 32.5, 42.4, 36.4, 37.1, 39.6, 38.7, 41.0, 38.4, 31.4, 42.9, 42.9, 41.7, 38.5, 47.6, 36.2, 31.8, 39.8, 34.1, 35.7, 48.4, 42.6, 37.3, 39.0, 43.5, 36.6, 41.4, 39.9, 38.1, 38.1, 35.8, 38.0, 37.6, 42.5, 42.5, 33.2, 38.5, 48.9, 39.7, 39.0, 40.6, 38.5, 45.8, 35.3, 32.0, 40.1, 36.2, 38.3, 38.3, 43.2, 38.5, 42.4, 43.8, 29.7, 36.2, 41.9, 40.1, 36.2, 35.3, 39.7, 43.8, 41.1, 42.6, 42.6, 42.6, 43.0, 41.4, 32.1, 32.2, 32.0, 55.6, 29.0, 32.0, 42.7, 44.9, 45.9, 34.9, 36.2, 40.9, 34.7, 38.8, 38.7, 41.9, 48.2, 41.2, 41.2, 40.6, 38.7, 40.4, 36.3, 34.3, 39.1, 41.9, 40.3, 39.2, 34.1, 43.7, 38.6, 38.1, 40.0, 30.4, 37.5, 34.7, 42.0, 41.6, 40.2, 37.5, 37.8, 32.7, 36.7, 35.1, 43.3, 41.7, 42.9, 42.9, 43.1, 39.3, 36.6, 32.7, 34.6, 41.6, 37.5, 36.2, 43.2, 40.9, 41.6, 38.2, 38.2, 38.2, 41.1, 42.3, 41.1, 40.8, 34.6, 35.3, 35.2, 38.3, 39.1, 44.0, 42.4, 38.0, 44.5, 39.8, 35.6, 32.7, 35.4, 36.2, 35.6, 49.2, 36.8, 47.2, 48.4, 40.9, 43.3, 36.6, 38.7, 31.2, 38.6, 34.3, 36.0, 30.6, 39.2, 38.8, 33.1, 33.1, 36.8, 42.0, 39.3, 38.6, 34.3, 38.6, 37.8, 33.5, 39.8, 47.0, 44.8, 42.9, 27.0, 37.7, 37.4, 34.3, 33.0, 40.5, 41.1, 46.9, 32.4, 40.8, 39.4, 35.0, 33.9, 38.8, 39.1, 39.1, 41.5, 37.1, 41.5, 40.7, 38.5, 46.6, 43.1, 33.6, 36.6, 35.4, 34.3, 39.9, 41.7, 47.6, 30.2, 34.9, 41.5, 32.6, 40.3, 38.3, 45.6, 35.0, 25.1, 36.4, 40.1, 39.7, 33.9, 32.5, 32.7, 33.3, 34.4, 50.4, 38.3, 36.2, 39.0, 35.4, 40.6, 37.8, 42.1, 31.1, 40.4, 40.3, 39.4, 37.0, 37.4, 38.7, 38.7, 40.3, 41.1, 34.2, 34.2, 39.2, 44.0, 34.7, 38.5, 38.1, 42.3, 42.3, 39.2, 37.2, 33.5, 39.9, 40.0, 38.0, 31.8, 39.8, 39.8, 35.5, 40.6, 44.5, 31.9, 39.6, 39.9, 34.5, 35.0, 37.0, 36.5, 39.5, 37.3, 39.7, 34.5, 40.3, 36.6, 33.6, 34.5, 38.4, 37.1, 39.1, 42.0, 37.1, 38.1, 46.7, 32.7, 41.2, 43.0, 38.8, 30.0, 30.0, 41.4, 40.0, 40.6, 40.2, 33.7, 33.7, 33.7, 31.5, 35.5, 40.3, 38.1, 33.9, 39.1, 36.6, 38.7, 29.5, 29.5, 34.5, 35.9, 46.5, 30.2, 35.2, 38.1, 39.0, 31.0, 34.6, 42.7, 43.3, 43.3, 48.0, 36.8, 44.0, 52.0, 37.0, 44.3, 24.9, 29.8, 32.9, 33.4, 39.4, 39.9, 39.9, 39.9, 38.4, 35.2, 35.2, 37.2, 38.2, 38.1, 39.5, 33.1, 39.8, 38.8, 40.4, 40.4, 41.6, 38.3, 36.4, 38.4, 39.1, 38.4, 31.4, 43.5, 39.2, 41.7, 46.4, 45.3, 37.5, 37.2, 36.4, 35.4, 36.9, 41.9, 37.6, 42.9, 36.3, 34.5, 34.3, 37.1, 46.5, 30.4, 37.2, 37.2, 37.3, 39.0, 39.8, 38.8, 38.1, 39.1, 35.4, 37.2, 43.6, 37.9, 43.3, 37.0, 30.2, 40.0, 35.4, 34.1, 37.5, 48.0, 39.1, 31.8, 40.1, 33.7, 41.6, 42.7, 35.5, 36.2, 41.1, 38.5, 43.2, 35.8, 37.5, 33.1, 37.8, 42.1, 40.4, 44.2, 39.1, 40.8, 42.1, 38.8, 38.2, 34.5, 44.1, 38.4, 41.4, 32.6, 32.1, 38.0, 35.4, 35.0, 36.1, 43.6, 34.4, 33.2, 36.0, 41.2, 44.7, 40.6, 34.8, 38.9, 28.8, 40.9, 40.9, 33.0, 36.9, 37.4, 40.2, 41.6, 38.2, 36.1, 47.1, 43.2, 43.9, 43.9, 52.0, 40.0, 44.2, 37.5, 42.1, 27.6, 37.6, 32.3, 34.4, 45.6, 39.5, 41.7, 37.3, 36.2, 37.5, 48.5, 36.9, 41.3, 38.8, 38.7, 36.3, 34.8, 33.5, 34.3, 45.4, 41.2, 34.6, 30.2, 34.7, 43.2, 34.7, 35.2, 35.2, 48.9, 43.0, 36.9, 32.2, 33.2, 37.9, 39.3, 43.1, 32.1, 36.8, 33.1, 39.2, 40.3, 36.6, 38.2, 34.2, 33.5, 33.5, 33.5, 34.3, 33.5, 33.4, 39.9, 40.4, 40.5, 36.7, 39.4, 42.3, 41.5, 31.1, 37.6, 35.8, 35.6, 35.8, 29.9, 34.0, 37.2, 39.2, 37.1, 37.3, 34.9, 35.1, 39.1, 37.3, 36.8, 47.1, 39.9, 36.1, 36.1, 29.7, 29.7, 36.2, 40.4, 39.3, 38.6, 29.4, 43.1, 38.0, 33.0, 29.4, 42.6, 32.4, 33.7, 33.0, 28.8, 38.8, 38.8, 37.9, 39.9, 41.5, 35.5, 32.2, 45.2, 40.7, 40.7, 38.6, 37.6, 43.1, 33.5, 35.9, 40.0, 38.1, 40.7, 39.4, 34.6, 45.1, 38.8, 29.7, 0.0, 34.9, 39.4, 31.4, 43.1, 32.9, 39.9, 39.0, 35.7, 38.7, 39.1, 42.9, 42.9, 35.2, 39.1, 39.0, 31.7, 42.1, 38.6, 27.3, 44.4, 39.6, 36.4, 45.3, 48.8, 44.2, 34.3, 29.3, 29.3, 29.3, 33.1, 39.9, 36.2, 40.2, 41.6, 37.3, 37.4, 34.2, 37.8, 37.8, 39.4, 38.0, 36.2, 43.0, 37.5, 37.5, 40.9, 40.1, 38.1, 39.8, 35.7, 33.0, 35.5, 35.5, 41.2, 33.5, 33.5, 39.9, 32.8, 35.6, 40.8, 40.6, 35.5, 41.1, 34.3, 42.4, 46.7, 35.1, 39.6, 41.5, 35.0, 40.9, 34.5, 43.2, 32.2, 39.1, 39.9, 49.2, 38.8, 34.1, 43.5, 38.7, 38.0, 33.7, 36.4, 31.5, 43.9, 48.2, 37.0, 37.7, 35.4, 34.7, 38.8, 39.4, 34.7, 43.5, 29.5, 36.3, 36.3, 34.5, 38.4, 37.5, 35.5, 38.0, 43.8, 46.9, 41.7, 35.2, 46.0, 39.9, 35.4, 39.7, 39.0, 32.5, 41.7, 23.4, 31.0, 40.0, 35.0, 48.0, 44.0, 34.9, 38.2, 38.5, 37.9, 37.3, 47.1, 39.0, 35.6, 37.0, 36.8, 30.1, 42.3, 39.8, 48.7, 38.8, 40.1, 39.7, 37.7, 37.7, 34.3, 36.4, 32.6, 39.0, 41.9, 37.7, 36.0, 31.2, 36.0, 41.9, 42.9, 32.5, 43.4, 24.9, 33.6, 41.4, 37.1, 47.6, 40.8, 44.0, 32.6, 35.8, 39.4, 28.8, 30.4, 38.1, 35.4, 35.4, 41.5, 45.1, 30.6, 37.8, 38.7, 37.3, 39.5, 43.9, 39.0, 40.7, 32.7, 44.9, 39.0, 31.8, 36.4, 40.1, 39.9, 41.2, 42.5, 41.2, 29.7, 38.3, 41.9, 37.0, 31.5, 42.7, 37.5, 41.3, 36.1, 42.6, 40.4, 42.4, 33.1, 35.0, 36.1, 41.4, 35.0, 32.0, 34.5, 41.0, 23.1, 23.1, 34.5, 32.1, 32.0, 43.9, 36.3, 41.4, 38.2, 44.9, 38.0, 42.0, 31.8, 36.9, 55.0], "aneuploide": [36.7, 34.5, 40.2, 37.8, 44.1, 42.6, 39.5, 38.5, 42.0, 32.3, 41.7, 41.7, 37.9, 40.2, 42.2, 37.4, 37.4, 39.5, 37.5, 37.6, 39.5, 43.6, 41.9, 39.9, 41.4, 29.3, 37.5, 37.4, 37.2, 32.2, 41.7, 36.0, 40.3, 44.5, 36.6, 40.4, 37.6, 40.9, 44.7, 41.6, 40.6, 36.7, 40.3, 39.1, 37.6, 38.0, 37.6, 33.2, 34.5, 34.8, 38.2, 37.1, 31.9, 36.4, 38.9, 43.2, 35.7, 40.9, 40.2, 40.1, 37.5, 37.9, 38.3, 32.4, 39.0, 39.5, 42.7, 41.9, 36.8, 36.2, 43.7, 37.5, 42.3, 50.1, 39.4, 40.1, 41.8, 35.7, 42.5, 36.9, 37.5, 36.8, 36.6, 40.3, 38.5, 37.8, 34.3, 45.9, 41.1, 40.1, 41.2, 39.9, 39.4, 42.3, 38.6, 39.1, 39.2, 38.8, 42.3, 42.8, 37.4, 36.5, 34.4, 39.5, 35.4, 42.7, 32.9, 39.5, 36.5, 29.7, 41.6, 39.4, 41.8, 36.2, 41.7, 40.1, 40.5, 27.6, 38.4, 40.8, 42.4, 42.1, 41.8, 39.7, 35.6, 39.4, 32.2, 40.7, 39.0, 41.8, 36.6, 40.7, 41.0, 39.9, 35.8, 42.4, 43.6, 35.9, 39.3, 36.4, 36.6, 40.0, 38.3, 33.0, 39.6, 37.4, 49.1, 42.4, 44.1, 41.7, 40.5, 40.3, 38.7, 38.7, 41.9, 43.5, 42.3, 41.0, 40.1, 37.0, 41.6, 41.4, 41.4, 38.5, 42.2, 43.4, 40.8, 34.7, 32.2, 39.1, 42.7, 33.0, 35.0, 35.9, 39.7, 43.3, 39.1, 39.7, 39.1, 37.9, 43.9, 32.4, 38.2, 37.3, 41.4, 35.9, 35.9, 38.8, 36.9, 41.1, 39.8, 39.8, 41.7, 41.9, 29.3, 27.2, 37.0, 34.3, 41.9, 36.5, 33.3, 35.0, 37.7, 37.6, 34.7, 41.1, 40.1, 44.5, 31.1, 40.9, 40.3, 36.5, 45.0, 41.8, 34.7, 39.5, 36.2, 41.1, 41.5, 48.4, 44.8, 39.0, 41.2, 34.1, 35.0, 40.5, 39.4, 37.5, 40.9, 43.0, 43.0, 37.2, 39.2, 39.6, 40.3, 45.2, 45.2, 45.2, 38.9, 38.9, 39.9, 39.1, 41.5, 39.9, 40.9, 42.3, 39.9, 42.6, 43.9, 40.8, 42.6, 38.2, 31.4, 39.0, 39.5, 43.2, 40.7, 36.9, 42.4, 38.8, 34.8, 40.3, 41.1, 49.6, 39.9, 35.4, 39.0, 37.6, 40.9, 40.5, 42.3, 41.2, 34.2, 39.6, 36.4, 40.8, 43.6, 42.5, 39.9, 44.9, 39.0, 40.8, 42.7, 38.3, 30.0, 45.5, 43.1, 41.6, 40.3, 40.3, 35.1, 33.7, 38.1, 43.9, 36.7, 28.0, 43.2, 28.0, 39.1, 38.2, 34.4, 36.4, 43.2, 42.6, 38.6, 36.7, 38.9, 38.7, 42.2, 38.7, 44.4, 43.6, 38.4, 35.5, 39.7, 42.8, 35.6, 42.0, 32.6, 32.6, 32.6, 39.0, 43.4, 35.3, 51.1, 45.3, 39.8, 29.4, 39.5, 42.2, 39.5, 40.7, 40.1, 39.6, 39.6, 40.2, 37.0, 31.1, 43.1, 40.8, 40.8, 0.4, 45.0, 39.9, 37.9, 40.3, 37.5, 37.5, 43.6, 33.3, 37.1, 40.6, 33.6, 38.2, 37.5, 44.4, 37.8, 44.4, 38.3, 40.2, 39.0, 38.2, 39.0, 39.6, 39.0, 40.3, 39.5, 39.1, 25.9, 31.2, 38.6, 35.5, 43.9, 41.3, 42.6, 42.6, 43.5, 38.4, 44.8, 40.4, 43.4, 44.7, 44.7, 37.3, 42.0, 45.5, 34.3, 36.3, 42.2, 39.3, 36.2, 44.3, 42.0, 45.6, 41.4, 38.9, 40.4, 42.6, 44.1, 39.8, 35.8, 39.6, 38.5, 38.2, 37.3, 29.2, 29.2, 44.8, 34.7, 40.2, 41.3, 38.0, 44.2, 33.6, 38.0, 40.8, 39.6, 36.7, 40.6, 42.5, 40.6, 41.9, 41.4, 31.7, 31.7, 35.5, 44.9, 32.4, 36.3, 43.1, 37.2, 38.6, 31.5, 41.2, 36.5, 42.5, 37.8, 37.8, 45.9, 44.6, 36.2, 42.2, 42.5, 42.5, 48.7, 42.0, 41.4, 42.5, 42.0, 39.4, 42.4, 41.1, 41.1, 36.7, 36.0, 39.6, 41.7, 39.1, 36.5, 39.1, 52.0, 42.1, 37.9, 41.1, 37.4, 40.2, 40.9, 37.1, 36.9, 44.1, 38.6, 33.8, 38.8, 35.3, 37.3, 41.1, 40.0, 36.3, 40.3, 37.9, 35.2, 37.7, 41.9, 37.4, 42.4, 37.5, 39.6, 36.7, 36.7, 36.7, 44.5, 37.4, 43.9, 40.5, 37.9, 43.9, 36.8, 36.8, 40.7, 38.4, 45.7, 36.1, 36.4, 42.9, 44.5, 38.2, 44.3, 36.0, 41.0, 40.3, 39.5, 37.9, 38.8, 45.6, 34.4, 39.1, 39.8, 39.5, 38.7, 43.3, 39.4, 38.6, 40.4, 45.8, 37.5, 43.1, 44.2, 37.6, 39.0, 43.0, 38.3, 40.6, 39.7, 40.2, 34.9, 40.6, 47.7, 36.3, 35.7, 36.9, 40.5, 34.6, 37.5, 38.8, 37.9, 40.2, 39.3, 44.4, 41.1, 44.7, 38.1, 43.7, 35.4, 35.4, 39.2, 39.0, 44.3, 40.4, 40.7, 39.0, 39.4, 43.2, 39.8, 40.4, 37.2, 43.3, 43.2, 39.6, 40.5, 41.0, 42.9, 33.4, 40.4, 36.5, 36.1, 42.0, 38.6, 44.5, 39.7, 42.8, 42.3, 41.2, 38.8, 34.0, 35.6, 37.6, 41.5, 37.2, 39.5, 33.6, 39.8, 52.3, 52.3, 39.5, 40.2, 52.3, 39.5, 40.5, 35.2, 44.3, 42.5, 40.6, 41.7, 40.5, 36.2, 42.0, 42.0, 43.5, 37.8, 38.6, 41.7, 39.0, 38.9, 38.6, 38.4, 36.2, 42.4, 39.4, 40.8, 35.6, 38.6, 41.7, 44.4, 36.2, 38.2, 42.6, 36.2, 40.8, 37.2, 38.6, 42.8, 41.1, 38.0, 38.0, 40.6, 37.1, 45.8, 41.1, 41.5, 34.0, 35.5, 41.6, 42.7, 38.8, 38.8, 45.2, 41.8, 40.4, 40.4, 45.5, 42.1, 42.1, 40.7, 41.5, 41.1, 33.5, 46.6, 43.1, 43.1, 34.8, 43.6, 43.6, 39.7, 39.7, 34.3, 42.5, 38.4, 39.8, 35.7, 35.7, 44.7, 39.7, 40.0, 42.3, 38.1, 39.1, 43.5, 42.2, 35.8, 37.3, 37.1, 41.5, 44.4, 39.0, 35.4, 40.8, 28.2, 38.2, 39.2, 40.9, 44.0, 43.3, 42.5, 41.2, 39.7, 39.5, 39.9, 35.3, 34.0, 39.2, 33.3, 42.0, 42.0, 38.2, 38.9, 39.7, 38.3, 44.0, 38.6, 40.7, 37.0, 36.9, 35.8, 37.8, 39.4, 39.4, 36.9, 38.7, 42.6, 40.5, 38.3, 44.5, 43.9, 35.9, 37.7, 33.1, 35.8, 35.8, 41.8, 38.1, 40.5, 40.7, 40.7, 44.5, 41.1, 36.7, 44.2, 40.1, 40.4, 34.1, 44.2, 38.6, 38.6, 47.9, 36.2, 36.8, 37.2, 0.0, 30.7, 30.7, 25.6, 40.1, 37.0, 42.3, 32.8, 35.7, 43.6, 38.9, 41.5, 44.8, 39.0, 38.7, 43.0, 42.1, 43.9, 38.9, 42.1, 44.6, 34.4, 36.9, 43.3, 39.5, 34.2, 36.9, 36.9, 43.4, 40.1, 40.6, 44.6, 34.8, 39.9, 43.0, 42.1, 41.2, 35.5, 35.5, 35.7, 41.1, 45.3, 38.9, 40.6, 37.5, 38.8, 39.6, 36.5, 44.2, 44.2, 44.2, 49.2, 39.1, 35.6, 38.3, 38.8, 41.6, 39.3, 31.9, 38.0, 36.1, 40.2, 40.2, 45.2, 33.7, 38.2, 41.0, 37.7, 43.9, 42.1, 40.0, 39.1, 43.1, 37.3, 42.7, 45.1, 37.9, 29.4, 36.6, 38.7, 35.9, 32.9, 41.3, 29.5, 29.5, 41.2, 35.0, 35.0, 46.9, 46.9, 35.2, 38.9, 39.2, 44.1, 40.1, 43.4, 43.4, 37.0, 31.7, 39.5, 37.2, 42.2, 45.9, 41.5, 39.6, 39.6, 44.2, 35.3, 39.7, 38.0, 43.9, 41.2, 34.9, 38.3, 28.7, 43.4, 40.6, 41.9, 35.6, 32.6, 37.2, 38.1, 36.5, 37.6, 29.7, 40.4, 44.3, 44.3, 41.0, 37.8, 36.7, 34.6, 37.1, 43.9, 38.3, 35.9, 39.0, 44.1, 37.8, 40.3, 35.2, 29.8, 36.7, 39.7, 31.4, 31.2, 38.4, 38.4, 38.4, 35.3, 43.4, 41.3, 40.2, 46.4, 39.3, 37.6, 39.1, 42.6, 38.5, 41.4, 41.3, 43.4, 37.8, 38.4, 45.3, 47.0, 40.4, 39.3, 42.4, 43.7, 39.2, 40.6, 39.2, 37.4, 42.6, 38.6, 37.9, 39.0, 43.6, 39.0, 39.8, 39.6, 43.3, 35.8, 40.1, 41.5, 39.1, 40.4, 38.8, 30.6, 39.1, 37.2, 37.3, 29.2, 41.3, 35.8, 35.9, 38.6, 41.3, 38.0, 41.3, 32.3, 42.5, 35.8, 40.6, 40.6, 41.6, 38.1, 40.9, 42.7, 41.9, 44.9, 43.8, 43.6, 37.5, 42.4, 42.4, 41.9, 41.0, 32.2, 43.3, 42.7, 38.5, 42.7, 41.9, 36.5, 36.5, 41.0, 42.0, 37.8, 37.8, 34.7, 0.0, 45.7, 39.1, 44.0, 38.7, 41.0, 38.9, 29.0, 43.8, 39.0, 43.9, 37.2, 41.7, 37.1, 39.1, 43.6, 43.1, 37.2, 40.4, 44.1, 37.3, 38.8, 42.6, 44.5, 37.2, 41.5, 34.3, 42.9, 41.1, 40.0, 36.1, 40.3, 34.1, 34.1, 40.8, 37.9, 33.1, 33.1, 42.3, 36.1, 43.9, 40.9, 40.9, 37.9, 39.9, 39.3, 45.7, 43.0, 37.8, 40.6, 37.4, 32.2, 42.9, 36.5, 43.5, 37.1, 40.6, 40.6, 35.1, 37.9, 37.9, 37.6, 37.8, 44.7, 31.4, 41.7, 38.5, 37.3, 39.9, 41.6, 43.5, 37.5, 40.4, 36.3, 42.5, 38.0, 42.5, 41.4, 41.5, 35.8, 40.0, 42.3, 36.3, 36.4, 35.7, 39.9, 37.4, 42.3, 37.9, 37.8, 43.2, 37.5, 39.7, 44.7, 45.0, 33.6, 40.1, 39.9, 43.3, 35.8, 43.1, 42.6, 41.0, 39.4, 41.3, 36.2, 42.8, 40.4, 36.8, 40.3, 37.2, 37.2, 33.5, 37.8, 47.7, 45.9, 41.4, 35.6, 36.5, 36.1, 42.9, 43.2, 36.9, 42.3, 42.8, 31.1, 42.3, 41.5, 36.3, 44.0, 35.7, 52.3, 41.4, 42.3, 39.8, 49.1, 42.3, 32.4, 36.8, 40.5, 42.0, 42.2, 42.2, 34.9, 41.9, 41.7, 36.4, 47.1, 42.8, 38.0, 39.8, 39.7, 44.6, 42.9, 39.4, 39.5, 39.3, 44.4, 36.9, 42.3, 40.4, 41.6, 41.6, 39.6, 40.4, 31.6, 42.1, 35.5, 41.4, 43.0, 37.9, 43.5, 42.3, 42.3, 38.5, 40.4, 31.9, 33.0, 45.0, 42.6, 41.5, 41.1, 41.1, 43.4, 43.4, 41.8, 36.6, 41.4, 43.7, 39.1, 39.9, 39.9, 45.2, 44.1, 40.8, 34.0, 34.0, 40.7, 35.7, 42.4, 41.5, 40.0, 42.3, 38.1, 37.3, 43.1, 37.7, 41.9, 34.8, 41.5, 35.8, 40.2, 32.9, 32.9, 43.1, 35.4, 39.9, 39.2, 40.2, 39.1, 42.3, 38.3, 45.6, 40.9, 39.5, 32.2, 44.0, 43.2, 34.0, 42.0, 40.9, 46.2, 34.6, 32.7, 31.0, 40.6, 46.0, 40.6, 39.6, 38.3, 33.6, 37.3, 37.2, 0.1, 43.7, 41.6, 0.3, 40.7, 40.5, 39.0, 37.7, 37.5, 39.6, 38.7, 38.6, 40.8, 40.4, 37.0, 42.4, 41.4, 38.8, 40.7, 40.7, 36.2, 50.4, 44.6, 41.1, 44.2, 38.1, 44.6, 42.1, 40.6, 40.5, 40.3, 43.9, 0.0, 47.9, 34.4, 42.3, 37.7, 41.2, 41.6, 43.5, 35.5, 40.4, 43.3, 36.0, 45.1, 45.6, 34.4, 38.2, 43.3, 38.5, 38.9, 39.6, 42.7, 42.3, 43.9, 44.6, 37.5, 35.5, 42.7, 37.0, 40.7, 38.7, 36.1, 36.9, 39.2, 43.0, 39.9, 41.6, 42.4, 41.9, 43.6, 37.6, 40.9, 41.5, 35.1, 43.1, 45.5, 39.4, 47.1, 41.4, 36.5, 40.0, 39.9, 43.1, 30.0, 30.0, 41.6, 37.6, 40.7, 42.8, 39.2, 40.8, 31.9, 35.7, 38.7, 41.9, 39.4, 36.7, 45.2, 39.9, 41.8, 42.7, 34.1, 39.5, 36.5, 41.2, 41.2, 40.3, 37.7, 46.1, 42.6, 36.7, 42.9, 36.3, 36.3, 39.0, 32.9, 38.2, 30.6, 36.6, 39.7, 39.3, 43.4, 38.2, 40.0, 40.2, 46.4, 37.1, 36.0, 52.5, 34.7, 42.2, 36.7, 39.5, 48.0, 43.6, 43.6, 38.1, 39.0, 38.1, 35.6, 24.9, 38.4, 34.2, 39.3, 38.6, 37.5, 44.9, 38.0, 40.6, 42.5, 39.0, 33.3, 36.2, 38.6, 38.6, 38.3, 38.5, 39.4, 33.6, 36.6, 42.4, 42.4, 37.7, 40.4, 41.0, 41.0, 38.7, 38.7, 42.0, 41.1, 39.9, 38.7, 32.6, 45.2, 37.8, 36.3, 36.3, 36.0, 39.2, 42.3, 41.7, 42.1, 39.3, 43.4, 27.9, 38.0, 44.6, 39.3, 37.5, 39.2, 36.4, 36.9, 38.9, 32.2, 28.1, 43.8, 36.3, 37.1, 37.1, 46.4, 43.4, 42.3, 42.3, 43.1, 43.6, 41.3, 29.5, 42.2, 41.5, 41.5, 39.8, 43.3, 37.3, 37.3, 43.4, 42.7, 32.8, 40.2, 41.3, 36.8, 42.7, 39.9, 43.9, 44.2, 38.5, 37.0, 38.0, 42.0, 48.0, 37.5, 38.7, 42.7, 42.0, 36.4, 35.8, 42.7, 39.9, 38.6, 38.3, 41.6, 43.2, 32.0, 38.9, 37.2, 44.3, 40.1, 41.9, 45.8, 40.1, 39.3, 39.5, 41.1, 39.5, 39.5, 42.1, 40.0, 42.7, 39.1, 37.9, 36.1, 44.0, 36.1, 39.1, 42.5, 40.8, 37.8, 43.6, 42.0, 43.6, 41.0, 38.1, 29.0, 48.1, 36.5, 41.1, 44.5, 36.9, 41.7, 39.4, 52.0, 35.7, 41.4, 37.9, 41.0, 44.4, 39.6, 34.5, 44.7, 35.9, 38.7, 38.7, 36.9, 40.8, 42.6, 36.9, 37.6, 39.5, 38.3, 40.2, 42.0, 42.9, 41.0, 40.3, 40.3, 34.1, 40.4, 35.2, 37.7, 40.4, 43.2, 35.2, 36.7, 37.8, 36.6, 40.5, 40.5, 34.5, 37.6, 37.8, 42.1, 29.3, 41.6, 37.5, 37.5, 40.4, 37.0, 32.2, 43.5, 36.9, 36.0, 41.0, 36.0, 36.0, 36.6, 40.9, 40.4, 34.4, 35.7, 42.6, 40.0, 41.6, 39.1, 36.7, 31.7, 41.8, 44.5, 39.4, 35.4, 41.2, 39.5, 39.3, 40.2, 43.4, 44.2, 36.4, 36.6, 43.2, 35.5, 40.8, 35.7, 42.5, 48.7, 41.6, 39.6, 40.6, 42.9, 33.6, 39.3, 39.8, 36.9, 38.9, 39.9, 35.8, 41.7, 38.8, 39.2, 50.1, 41.3, 38.3, 43.2, 42.2, 37.4, 40.3, 40.0, 42.2, 37.1, 38.4, 38.4, 37.8, 40.3, 38.8, 52.2, 32.2, 39.9, 38.6, 46.0, 39.0, 34.3, 45.6, 42.3, 43.3, 43.3, 51.4, 42.3, 41.0, 40.6, 34.4, 52.3, 36.4, 38.8, 39.4, 38.6, 44.0, 42.5, 43.2, 32.7, 38.9, 40.0, 41.7, 41.7, 35.6, 37.7, 38.9, 39.4, 37.5, 38.7, 39.8, 39.8, 39.7, 40.5, 44.8, 37.7, 34.4, 37.4, 35.3, 42.3, 49.9, 40.6, 42.4, 42.4, 42.2, 44.3, 45.8, 35.0, 35.0, 38.8, 40.8, 39.6, 39.9, 34.7, 39.1, 42.5, 37.5, 35.5, 33.5, 38.8, 37.4, 42.7, 44.1, 45.5, 38.5, 46.0, 39.3, 35.5, 40.9, 40.0, 33.0, 40.0, 40.8, 42.4, 44.1, 37.9, 35.9, 39.9, 40.1, 37.5, 38.8, 41.7, 41.6, 39.7, 40.0, 38.1, 38.7, 37.8, 39.1, 42.2, 38.8, 41.5, 41.2, 32.6, 41.3, 35.3, 39.1, 39.1, 42.0, 40.9, 41.0, 39.4, 43.0, 37.9, 40.9, 39.5, 42.0, 40.9, 41.3, 31.5, 39.1, 38.0, 27.3, 45.4, 44.4, 42.0, 39.7, 36.4, 45.3, 48.8, 38.7, 38.4, 38.6, 39.6, 42.3, 35.4, 37.4, 29.3, 27.2, 39.7, 33.4, 37.7, 38.7, 42.1, 41.6, 39.4, 40.3, 45.0, 39.8, 41.0, 41.8, 43.4, 40.8, 39.6, 43.6, 35.1, 34.7, 42.1, 40.5, 40.5, 38.1, 47.9, 0.0, 37.2, 41.8, 42.5, 44.2, 25.6, 35.7, 41.6, 38.0, 45.6, 43.3, 41.2, 39.0, 41.6, 44.1, 41.0, 42.3, 42.3, 43.9, 44.6, 42.0, 38.5, 40.6, 36.9, 43.6, 38.8, 37.3, 42.1, 41.2, 35.4, 43.6, 38.3, 40.9, 39.6, 41.1, 57.2, 37.0, 37.0, 37.6, 42.5, 40.1, 42.4, 41.1, 41.1, 35.6, 38.3, 41.6, 42.4, 42.8, 41.3, 39.2, 41.5, 34.1, 42.8, 31.9, 38.7, 36.1, 36.1, 40.2, 33.7, 38.1, 50.5, 43.2, 39.9, 41.5, 41.2, 38.2, 43.2, 35.2, 42.0, 45.1, 43.5, 40.1, 52.7, 36.7, 44.1, 35.0, 44.1, 33.4, 38.4, 40.7, 32.7, 41.7, 44.1, 47.5, 32.9, 41.2, 37.0, 39.9, 35.6, 39.1, 48.2, 39.6, 39.2, 39.2, 38.4, 38.3, 45.1, 38.5, 44.5, 32.0, 39.4, 37.9, 42.3, 37.5, 39.9, 40.9, 41.2, 41.2, 34.9, 34.9, 38.6, 44.6, 40.4, 41.0, 40.5, 37.1, 39.0, 38.7, 38.3, 38.3, 38.7, 38.2, 40.8, 39.1, 25.9, 40.8, 31.4, 31.2, 43.5, 40.8, 34.9, 43.0, 32.5, 41.2, 41.2, 41.3, 43.9, 43.9, 43.6, 42.7, 40.1, 41.3, 43.5, 44.6, 42.7, 40.0, 39.9, 41.1, 40.4, 39.2, 43.4, 42.0, 38.1, 40.8, 42.1, 39.7, 37.8, 34.5, 37.0, 32.2, 45.4, 45.5, 34.3, 40.1, 43.0, 39.0, 38.8, 42.4, 42.2, 39.8, 44.3, 41.9, 40.1, 39.1, 39.4, 34.4, 43.1, 39.5, 29.2, 42.0, 43.4, 38.1, 37.3, 31.1, 40.4, 34.7, 40.8, 38.8, 30.2, 40.0, 39.0, 48.0, 39.7, 39.7, 36.7, 31.8, 38.5, 35.3, 35.8, 31.7, 43.6, 41.9, 40.6, 43.2, 44.7, 43.8, 43.6, 37.2, 42.4, 35.7, 36.3, 36.2, 38.2, 42.7, 31.5, 37.0, 43.8, 42.4, 33.5, 40.0, 41.1, 35.4, 42.2, 43.7, 37.1, 42.5, 48.7, 41.8, 31.6, 37.8, 37.8, 36.1, 38.5, 42.5, 42.0, 34.5, 39.9, 42.8, 31.7, 31.7, 38.7, 42.3, 40.1, 36.3, 37.1, 44.1, 41.4, 41.7, 41.7, 34.6, 44.3, 44.3, 38.6, 44.0, 38.1, 38.6, 44.7, 39.6, 38.3, 38.7, 39.0, 32.6, 41.9, 41.5, 40.8, 36.3, 42.6, 42.0, 42.0, 40.2, 38.3, 41.2, 42.9, 41.1, 39.5, 41.7, 38.4, 41.9, 37.9, 32.1, 36.3, 36.2, 37.4, 36.6, 36.7, 38.9, 37.4, 41.4, 32.8, 42.0, 41.4, 41.4, 35.1, 39.3, 37.4, 36.1, 36.0, 35.1, 42.9, 43.9, 37.2, 40.1, 44.7, 34.6, 34.4, 33.8, 33.8, 42.9, 36.7, 40.5, 38.7, 38.0, 41.7, 37.4, 41.4, 38.7, 40.0, 39.5, 38.2, 43.9, 43.9, 45.0, 40.2, 42.4, 37.7, 39.1, 40.8, 40.5, 35.7, 38.9, 40.1, 40.1, 38.8, 38.8, 38.9, 40.2, 40.2, 43.4, 43.0, 43.0, 40.3, 35.4, 32.1, 35.1, 41.6, 40.4, 39.1, 32.7, 41.3, 42.1, 36.2, 40.2, 37.2, 37.5, 40.3, 39.8, 38.2, 39.9, 40.3, 52.2, 42.2, 42.7, 31.2, 39.5, 39.4, 38.6, 42.3, 37.6, 29.9, 41.1, 39.2, 37.9, 44.0, 41.5, 44.0, 36.5, 41.5, 39.2, 43.4, 39.8, 52.3, 40.5, 43.6, 43.6, 43.1, 36.8, 37.6, 36.2, 40.5, 42.5, 36.2, 36.8, 39.0, 36.5, 38.6, 37.6, 29.7, 35.7, 37.7, 38.4, 41.8, 41.9, 36.1, 39.8, 36.5, 38.6, 38.9, 38.9, 37.9, 39.4, 27.0, 40.5, 40.6, 42.4, 39.4, 33.7, 36.9, 28.8, 41.5, 37.5, 37.5, 42.1, 39.9, 33.8, 33.8, 36.8, 48.3, 38.8, 37.6, 39.9, 39.3, 39.7, 45.1, 38.4, 44.1, 40.2, 37.6, 35.5, 41.5, 42.1, 35.9, 41.1, 39.9, 40.0, 41.4, 36.3, 35.4, 35.4, 40.7, 40.7, 36.2, 39.2, 37.9, 42.0, 32.8, 43.6, 37.9, 39.5, 36.4, 37.5, 42.6, 40.3, 40.1, 36.5, 41.4, 37.1, 38.8, 44.8, 37.3, 41.5, 41.5, 38.8, 33.2, 37.1, 39.8, 39.6, 43.4, 43.3, 43.3, 45.6, 42.5, 42.4, 39.5, 42.9, 31.8, 44.2, 33.3, 39.6, 39.6, 38.2, 41.0, 39.7, 38.7, 39.8, 38.6, 37.9, 29.3, 37.7, 36.2, 39.9, 40.4, 36.1, 36.2, 43.9, 37.3, 42.6, 41.8, 42.6, 40.6, 42.0, 40.6, 42.3, 36.2, 43.0, 43.0, 43.0, 43.6, 34.7, 43.5, 41.2, 48.7, 42.0, 42.0, 35.6, 40.5, 42.1, 40.5, 42.1, 35.2, 40.4, 0.0, 41.8, 39.3, 40.1, 25.6, 41.6, 39.8, 32.8, 40.4, 39.7, 42.8, 39.1, 44.5, 42.7, 38.5, 36.1, 39.4, 43.0, 42.3, 43.9, 43.8, 38.4, 42.0, 39.0, 34.2, 38.3, 36.9, 43.5, 40.7, 40.1, 40.5, 49.6, 41.9, 39.0, 35.5, 38.3, 35.7, 39.6, 40.6, 36.3, 36.3, 41.2, 39.9, 37.2, 40.9, 39.5, 41.4, 38.3, 42.0, 38.8, 45.5, 41.6, 39.8, 34.1, 40.3, 34.1, 40.2, 40.2, 42.1, 39.4, 41.0, 36.9, 41.0, 40.6, 33.7, 33.7, 43.4, 33.7, 36.4, 39.5, 38.1, 42.0, 37.9, 31.7, 28.0, 43.2, 33.9, 41.7, 38.6, 35.3, 37.1, 40.1, 42.2, 39.1, 43.0, 43.0, 45.6, 41.2, 41.0, 40.7, 42.8, 42.0, 38.2, 43.5, 40.2, 37.2, 44.1, 41.7, 32.9, 51.1, 36.7, 37.0, 41.2, 41.7, 39.0, 41.6, 36.7, 40.9, 36.2, 38.1, 44.4, 44.4, 40.8, 38.1, 38.4, 38.6, 36.5, 40.7, 32.9, 39.9, 40.3, 39.0, 38.4, 40.9, 39.3, 41.7, 43.4, 36.2, 40.6, 46.3, 27.6, 38.9, 40.6, 39.7, 38.6, 37.2, 42.3, 44.0, 38.1, 37.6, 38.5, 44.8, 41.9, 34.4, 41.0, 41.9, 41.1, 36.6, 38.8, 42.6, 41.0, 42.4, 40.9, 40.9, 35.7, 42.6, 39.9, 37.9, 32.6, 35.9, 40.2, 34.3, 31.2, 43.4, 36.3, 36.0, 40.2, 39.2, 40.0, 42.9, 42.9, 43.5, 39.3, 44.7, 42.7, 47.6, 40.4, 43.4, 37.1, 40.4, 40.4, 41.1, 43.7, 39.7, 41.5, 40.5, 36.7, 37.7, 38.7, 36.3, 38.4, 40.1, 46.5, 28.8, 38.8, 43.0, 43.0, 40.8, 43.1, 38.1, 41.1, 39.8, 37.4, 39.5, 37.3, 37.3, 43.8, 44.0, 34.7, 42.3, 39.9, 38.6, 34.7, 45.3, 44.2, 37.8, 38.1, 37.3, 39.9, 32.7, 44.9, 35.4, 41.9, 40.6, 39.9, 40.1, 38.1, 31.7, 42.6, 44.1, 35.7, 43.1, 32.2, 41.9, 41.9, 39.3, 44.7, 40.6, 40.6, 39.5, 39.5, 41.3, 33.5, 41.2, 42.0, 42.6, 42.6, 33.1, 37.4, 40.4, 45.9, 38.8, 44.2, 44.6, 39.1, 42.0, 42.0, 37.8, 37.9, 43.0, 35.6, 34.5, 39.4, 42.8, 48.9, 43.8, 38.8, 43.2, 41.7, 40.9, 38.4, 39.0, 44.3, 40.9, 52.0, 52.0, 35.8, 41.2, 33.4, 41.2, 36.7, 42.5, 40.7, 38.7, 39.0, 40.9, 44.9, 36.9, 38.8, 41.1, 40.2, 39.0, 41.5, 39.9, 42.1, 37.9, 40.1, 32.3, 32.3, 43.4, 41.9, 43.0, 34.1, 34.1, 40.8, 37.9, 40.4, 37.7, 40.5, 37.5, 36.7, 36.7, 41.6, 43.9, 40.0, 43.9, 40.5, 34.5, 39.3, 40.5, 38.3, 42.5, 41.7, 40.2, 38.2, 43.1, 36.6, 40.1, 37.9, 43.1, 40.6, 42.9, 36.7, 48.5, 45.9, 38.8, 38.8, 32.5, 42.5, 38.3, 42.5, 35.4, 33.2, 39.6, 40.6, 47.7, 43.3, 41.1, 41.4, 40.9, 44.0, 41.2, 42.5, 37.9, 40.2, 40.0, 41.7, 42.0, 48.9, 39.3, 37.9, 43.7, 41.6, 38.4, 35.4, 39.2, 41.3, 41.2, 33.4, 39.4, 43.2, 32.5, 35.7, 42.2, 34.2, 34.2, 37.2, 44.7, 37.2, 43.4, 43.4, 41.8, 43.4, 42.2, 43.3, 41.2, 36.5, 45.1, 42.3, 42.3, 42.8, 39.7, 39.2, 44.0, 29.6, 42.4, 38.4, 40.4, 39.5, 43.4, 42.5, 40.3, 42.5, 42.5, 36.2, 43.2, 36.1, 37.8, 36.5, 42.8, 36.1, 41.6, 39.4, 39.4, 31.8, 31.8, 41.2, 40.4, 41.2, 37.3, 37.2, 41.9, 49.9, 37.1, 42.8, 40.3, 40.3, 36.9, 38.6, 42.2, 40.8, 36.9, 40.4, 43.6, 35.3, 39.9, 39.4, 38.3, 33.8, 38.8, 39.3, 42.1, 40.7, 41.3, 40.5, 42.8, 46.6, 39.7, 42.2, 42.6, 34.4, 40.5, 38.6, 35.1, 37.9, 35.7, 36.4, 39.9, 37.8, 39.7, 42.3, 41.6, 41.4, 42.0, 41.3, 42.2, 41.0, 39.0, 42.0, 37.5, 41.0, 39.7, 28.2, 35.4, 42.7, 42.0, 35.4, 43.3, 39.6, 39.6, 39.6, 43.8, 41.9, 41.9, 39.1, 33.4, 42.3, 43.8, 35.2, 41.2, 41.2, 43.4, 34.0, 40.1, 39.5, 42.0, 35.3, 40.5, 43.3, 39.6, 42.4, 44.2, 38.6, 38.6, 43.7, 39.6, 39.9, 38.6, 43.6, 39.7, 37.7, 40.5, 37.7, 38.6, 40.3, 37.4, 39.4, 41.5, 39.5, 39.5, 39.5, 35.8, 40.5, 40.7, 41.0, 41.8, 40.6, 34.7, 40.7, 38.9, 41.5, 41.5, 37.5, 40.3, 40.0, 36.5, 43.2, 43.4, 38.2, 42.9, 35.2, 42.4, 40.9, 43.4, 43.8, 43.0, 40.7, 0.0, 40.9, 25.6, 44.4, 35.7, 41.6, 42.3, 45.7, 45.7, 39.9, 39.8, 39.5, 43.5, 28.9, 41.2, 39.3, 39.0, 39.0, 37.5, 36.1, 36.1, 39.4, 42.6, 44.6, 31.4, 40.5, 40.6, 44.8, 40.1, 40.7, 43.6, 40.5, 44.6, 39.1, 37.3, 41.2, 39.0, 35.5, 40.9, 41.2, 39.9, 40.9, 36.4, 40.5, 44.1, 44.4, 35.1, 41.2, 45.3, 36.4, 43.0, 39.7, 41.7, 40.0, 40.8, 39.8, 38.8, 35.3, 30.0, 41.3, 43.5, 37.5, 39.8, 43.1, 39.4, 42.8, 43.9, 42.7, 37.9, 43.9, 0.0, 39.1, 38.2, 38.5, 43.2, 34.7, 41.4, 45.1, 42.8, 39.9, 42.1, 40.5, 38.5, 38.4, 45.1, 35.5, 44.6, 44.3, 36.5, 39.4, 44.1, 47.5, 32.7, 39.0, 44.2, 31.0, 44.3, 48.0, 48.0, 44.4, 38.1, 40.2, 37.0, 37.1, 44.3, 44.3, 43.2, 38.4, 39.9, 38.4, 42.2, 42.2, 39.9, 43.9, 43.0, 37.3, 40.6, 40.6, 33.6, 44.4, 35.4, 36.6, 38.6, 39.6, 44.0, 44.6, 35.4, 40.9, 39.1, 41.0, 50.2, 45.7, 44.2, 44.2, 35.9, 42.6, 42.0, 41.1, 36.3, 37.9, 38.3, 37.1, 35.2, 39.8, 37.7, 46.4, 46.4, 42.9, 43.5, 42.7, 40.1, 43.4, 44.7, 41.9, 42.6, 40.5, 44.7, 38.3, 38.1, 40.6, 44.0, 35.7, 38.0, 32.6, 35.8, 35.7, 38.2, 34.8, 37.3, 39.3, 39.3, 46.5, 43.1, 37.9, 42.6, 40.5, 40.1, 41.5, 36.9, 39.4, 44.0, 43.1, 37.8, 39.1, 41.8, 36.6, 45.3, 43.4, 39.9, 40.9, 44.5, 39.4, 39.7, 39.2, 39.0, 40.8, 37.0, 41.7, 43.8, 39.0, 42.3, 40.0, 42.5, 42.5, 42.1, 31.7, 36.8, 35.3, 31.7, 36.2, 40.3, 41.6, 44.9, 42.4, 39.2, 40.6, 43.1, 37.2, 32.2, 33.5, 41.2, 39.1, 41.3, 37.4, 45.9, 0.0, 39.8, 40.9, 40.9, 34.3, 32.1, 35.0, 44.0, 42.0, 42.5, 38.8, 38.8, 34.5, 38.1, 39.0, 39.5, 32.8, 41.4, 38.6, 43.6, 38.9, 38.9, 36.5, 43.4, 43.6, 42.2, 41.1, 38.6, 38.1, 37.4, 36.5, 40.0, 36.8, 36.8, 41.9, 35.9, 40.7, 36.3, 39.5, 39.5, 41.9, 41.3, 39.4, 38.5, 44.6, 47.1, 47.1, 34.1, 34.1, 43.2, 42.2, 37.2, 36.6, 39.5, 36.7, 36.7, 38.4, 42.8, 39.9, 38.1, 38.6, 43.9, 41.4, 40.9, 40.5, 32.2, 35.6, 34.6, 40.8, 42.0, 39.9, 42.4, 41.4, 37.2, 34.4, 40.9, 35.1, 43.0, 43.1, 34.6, 33.8, 27.8, 44.0, 41.0, 37.6, 38.0, 40.3, 41.4, 34.5, 34.8, 40.1, 45.4, 36.4, 38.7, 37.6, 37.7, 41.3, 40.9, 37.8, 40.8, 40.8, 34.6, 37.5, 37.9, 40.6, 38.3, 38.1, 38.3, 39.6, 42.9, 42.0, 42.1, 37.8, 34.7, 39.3, 35.8, 41.7, 37.9, 36.0, 39.8, 44.8, 38.8, 39.3, 33.4, 39.1, 37.0, 42.5, 42.8, 42.5, 39.9, 39.2, 44.0, 39.5, 44.8, 41.9, 36.8, 40.9, 39.6, 48.4, 37.5, 37.1, 43.4, 43.3, 33.4, 34.4, 39.0, 39.0, 45.6, 41.7, 43.3, 43.3, 41.5, 41.0, 44.1, 37.4, 35.8, 42.4, 52.3, 52.3, 41.4, 45.6, 36.8, 43.1, 32.4, 32.4, 37.6, 36.2, 40.6, 36.2, 42.0, 42.0, 37.5, 38.4, 37.3, 40.0, 36.5, 32.9, 39.6, 43.0, 41.0, 38.9, 46.6, 39.8, 43.9, 42.9, 38.6, 38.6, 35.4, 38.7, 38.7, 37.4, 38.2, 39.1, 27.0, 29.4, 43.4, 37.1, 42.2, 44.3, 40.4, 43.9, 41.8, 43.4, 33.5, 34.0, 37.4, 37.4, 37.8, 34.0, 40.7, 40.4, 42.1, 37.6, 40.7, 46.0, 42.8, 41.1, 33.5, 39.7, 38.1, 33.0, 40.8, 37.4, 42.4, 37.9, 35.4, 38.4, 34.6, 37.1, 37.9, 41.7, 33.0, 30.2, 33.0, 33.9, 41.9, 35.5, 40.0, 38.7, 40.5, 36.5, 41.4, 37.3, 38.0, 41.3, 35.8, 42.0, 32.9, 39.1, 42.0, 39.2, 39.1, 42.0, 41.0, 43.9, 40.8, 39.1, 37.6, 40.5, 43.6, 42.1, 39.7, 39.4, 39.5, 37.9, 38.3, 40.0, 46.2, 39.0, 39.0, 35.3, 35.3, 40.6, 38.0, 38.9, 42.5, 41.0, 43.3, 42.2, 32.7, 38.1, 35.4, 37.9, 29.3, 41.4, 34.1, 39.9, 37.7, 38.8, 41.6, 37.4, 34.6, 34.6, 33.1, 40.7, 40.5, 40.4, 41.0, 40.7, 41.5, 42.2, 42.2, 43.4, 43.2, 41.2, 37.4, 40.8, 42.1, 43.8, 48.7, 40.5, 36.2, 40.9, 43.0, 0.0, 42.5, 25.6, 37.7, 34.7, 39.6, 39.6, 41.3, 38.0, 40.4, 35.0, 42.2, 39.9, 43.4, 37.1, 42.7, 38.9, 40.9, 42.3, 39.9, 34.0, 41.1, 42.0, 39.6, 39.0, 37.0, 42.0, 43.7, 40.5, 40.9, 40.9, 40.9, 34.1, 40.5, 37.1, 39.0, 39.0, 39.0, 42.5, 43.6, 38.3, 36.7, 39.3, 39.3, 34.1, 40.6, 45.3, 43.1, 45.9, 36.8, 38.8, 45.5, 44.2, 39.1, 42.0, 38.8, 37.6, 37.9, 39.3, 44.6, 40.4, 38.9, 41.3, 45.3, 43.5, 39.8, 35.6, 35.6, 32.9, 36.7, 44.8, 28.0, 33.7, 38.1, 37.9, 39.9, 41.5, 43.1, 40.2, 35.3, 40.7, 42.9, 44.5, 44.1, 35.2, 30.6, 45.1, 46.9, 32.6, 38.9, 40.2, 35.6, 34.2, 40.1, 40.2, 23.4, 35.3, 39.6, 42.2, 42.7, 36.7, 48.0, 42.4, 44.4, 40.4, 41.9, 44.6, 38.7, 29.8, 30.6, 40.7, 36.6, 43.9, 43.9, 45.3, 36.1, 39.3, 43.1, 43.4, 39.6, 40.1, 40.6, 44.8, 39.7, 39.7, 37.0, 30.1, 36.5, 39.8, 48.7, 39.6, 41.0, 32.5, 39.1, 44.2, 43.5, 45.7, 32.6, 39.5, 37.7, 40.9, 39.8, 38.6, 38.4, 43.2, 39.0, 46.4, 46.4, 42.6, 44.7, 37.9, 44.5, 43.6, 42.6, 27.9, 42.7, 44.6, 40.4, 43.4, 39.9, 39.7, 40.4, 38.9, 39.7, 31.8, 37.4, 39.1, 38.0, 30.4, 43.1, 39.1, 38.9, 42.3, 49.4, 43.6, 39.6, 33.8, 42.0, 41.5, 37.4, 38.8, 35.4, 39.3, 37.3, 38.9, 32.8, 43.1, 39.0, 39.0, 38.6, 46.0, 36.2, 38.1, 39.2, 34.7, 40.8, 40.8, 38.5, 41.9, 40.0, 40.8, 38.7, 41.5, 40.6, 41.6, 36.4, 42.7, 33.1, 41.9, 42.7, 39.9, 35.4, 41.0, 43.2, 38.8, 41.6, 41.6, 44.5, 38.3, 43.2, 39.2, 32.2, 40.6, 40.6, 36.2, 39.4, 41.9, 39.7, 38.6, 43.3, 37.0, 39.3, 39.5, 38.7, 36.1, 36.4, 36.5, 33.5, 37.8, 43.2, 33.1, 31.8, 41.4, 41.4, 41.0, 34.8, 40.0, 42.7, 37.2, 41.1, 38.0, 36.5, 42.7, 38.8, 41.7, 37.1, 41.4, 41.7, 36.5, 52.0, 44.6, 43.6, 37.4, 34.7, 38.0, 35.9, 43.1, 41.1, 41.2, 41.2, 39.6, 36.7, 37.5, 37.9, 37.4, 36.6, 39.0, 43.0, 34.3, 40.9, 36.1, 44.2, 42.4, 37.5, 40.5, 35.2, 38.1, 38.1, 39.8, 44.7, 40.9, 43.9, 43.9, 37.8, 35.6, 39.3, 40.6, 42.0, 37.8, 37.8, 36.0, 40.6, 43.1, 36.5, 42.5, 40.6, 35.1, 38.8, 34.4, 40.6, 45.6, 34.6, 38.7, 41.3, 36.7, 41.6, 42.5, 42.7, 40.4, 38.7, 39.5, 43.9, 39.2, 47.7, 38.1, 37.4, 42.8, 36.9, 39.8, 40.6, 44.9, 37.5, 39.8, 41.9, 40.8, 41.9, 42.4, 43.1, 36.2, 43.1, 38.1, 37.5, 40.4, 39.9, 42.2, 40.4, 40.2, 37.5, 39.6, 42.2, 39.0, 37.8, 41.8, 36.8, 41.6, 42.9, 52.2, 40.1, 42.9, 34.3, 36.9, 42.8, 42.8, 41.2, 37.4, 41.1, 52.3, 52.3, 40.1, 38.4, 38.6, 44.8, 38.6, 38.4, 40.7, 39.6, 44.1, 42.0, 43.5, 38.4, 37.8, 41.7, 41.5, 38.6, 41.7, 39.0, 44.3, 35.7, 43.0, 39.8, 37.4, 33.6, 41.9, 31.8, 39.8, 35.6, 44.4, 38.7, 34.1, 36.9, 40.5, 43.6, 43.6, 40.6, 41.9, 42.2, 42.4, 39.4, 39.4, 36.9, 34.7, 40.6, 37.7, 28.8, 41.6, 41.6, 44.3, 35.3, 42.1, 36.8, 45.1, 44.1, 43.4, 38.3, 39.9, 41.4, 43.0, 43.7, 43.0, 45.2, 45.2, 31.9, 45.5, 42.1, 38.4, 42.8, 38.5, 43.4, 40.7, 38.8, 45.0, 43.1, 41.1, 46.6, 38.0, 35.0, 38.8, 40.0, 47.6, 35.7, 36.4, 42.3, 30.2, 42.3, 39.4, 40.8, 42.3, 39.0, 41.4, 44.8, 42.2, 41.4, 34.9, 41.3, 32.9, 41.3, 51.3, 32.2, 38.3, 42.7, 42.7, 41.8, 42.0, 42.7, 43.0, 38.7, 38.7, 43.2, 35.0, 42.3, 40.9, 37.6, 39.5, 42.4, 42.0, 40.0, 38.0, 41.1, 39.7, 44.2, 40.4, 39.3, 0.1, 39.8, 40.8, 41.3, 41.4, 39.1, 41.9, 45.6, 41.8, 36.5, 40.1, 40.4, 43.1, 43.1, 34.6, 41.8, 38.1, 39.8, 40.6, 43.5, 38.8, 41.4, 39.1, 41.2, 44.6, 40.1, 40.4, 35.1, 41.5, 34.1, 40.6, 47.9, 40.2, 25.6, 44.4, 40.2, 41.2, 35.5, 33.0, 41.1, 37.4, 37.1, 44.5, 39.6, 36.1, 40.6, 41.1, 43.9, 42.6, 35.5, 39.6, 34.4, 43.3, 39.6, 40.3, 36.9, 44.6, 38.8, 34.9, 34.3, 41.2, 41.2, 34.2, 36.4, 38.0, 45.9, 43.8, 40.1, 40.1, 39.6, 47.1, 43.2, 41.4, 42.7, 44.2, 38.3, 37.6, 40.4, 39.8, 40.3, 39.1, 39.8, 43.1, 40.2, 38.0, 42.1, 39.4, 43.9, 33.7, 36.4, 36.5, 41.1, 37.9, 41.0, 41.2, 43.1, 33.9, 40.2, 41.4, 41.7, 34.7, 41.4, 36.7, 42.7, 42.7, 45.1, 35.9, 37.2, 52.7, 35.2, 35.2, 33.2, 33.2, 43.6, 35.0, 43.0, 55.0, 39.0, 42.3, 36.6, 41.7, 37.6, 36.7, 39.0, 35.9, 37.7, 40.7, 48.0, 38.5, 43.1, 37.1, 39.0, 38.6, 41.0, 39.9, 39.4, 40.7, 42.3, 37.5, 35.0, 42.5, 41.2, 38.5, 43.1, 36.0, 41.9, 42.6, 44.8, 43.3, 36.9, 44.4, 37.2, 34.4, 41.0, 37.8, 32.5, 32.5, 38.8, 40.4, 37.5, 39.7, 43.9, 46.2, 43.5, 37.1, 41.6, 38.7, 40.2, 34.3, 36.3, 36.3, 37.4, 46.4, 39.1, 41.9, 43.4, 37.8, 40.0, 41.1, 43.4, 35.4, 35.4, 38.1, 40.6, 38.9, 41.6, 42.8, 35.4, 36.7, 44.0, 41.0, 28.1, 45.4, 35.8, 42.1, 38.4, 39.3, 37.5, 40.7, 40.7, 38.1, 43.1, 42.5, 44.3, 41.5, 39.0, 38.8, 38.8, 37.7, 38.8, 39.4, 42.2, 40.0, 38.5, 37.3, 39.4, 42.0, 40.9, 31.1, 38.0, 34.4, 38.1, 39.0, 41.0, 42.5, 40.2, 46.6, 28.1, 40.4, 41.0, 43.2, 41.5, 32.4, 38.7, 37.2, 39.0, 39.7, 40.1, 41.1, 46.7, 31.5, 44.7, 37.0, 41.1, 42.9, 38.3, 38.3, 40.0, 41.0, 42.0, 37.0, 37.8, 40.0, 41.9, 38.5, 38.5, 42.1, 42.1, 45.9, 51.8, 40.0, 36.8, 36.8, 51.8, 42.2, 40.8, 42.0, 41.4, 34.3, 36.1, 44.0, 38.5, 45.1, 34.5, 38.1, 42.8, 42.4, 38.0, 43.2, 41.1, 39.5, 40.9, 38.9, 41.4, 45.9, 41.7, 36.5, 43.1, 52.0, 35.9, 40.2, 39.9, 34.5, 40.7, 37.9, 39.4, 42.6, 42.1, 42.5, 41.9, 41.0, 41.5, 41.5, 39.9, 40.2, 41.2, 42.9, 41.3, 33.5, 37.2, 42.9, 34.1, 34.1, 40.8, 41.3, 41.9, 39.6, 38.9, 43.6, 36.8, 39.2, 43.9, 43.9, 35.6, 34.7, 34.3, 27.4, 45.7, 36.1, 37.5, 38.0, 37.1, 41.1, 37.1, 41.7, 42.8, 42.1, 37.9, 37.9, 37.8, 39.1, 36.2, 39.9, 38.3, 38.7, 38.7, 40.0, 39.3, 40.2, 37.1, 34.3, 36.4, 39.1, 40.8, 40.5, 44.0, 40.1, 34.7, 34.7, 39.0, 35.2, 39.1, 39.8, 40.1, 39.9, 38.2, 41.9, 43.7, 39.3, 41.3, 42.6, 42.6, 39.1, 40.1, 41.3, 39.8, 42.2, 37.2, 41.9, 36.8, 37.4, 40.3, 48.4, 37.8, 18.4, 38.9, 45.9, 42.2, 42.5, 39.9, 46.0, 42.9, 34.4, 38.6, 36.7, 42.8, 51.4, 51.4, 34.0, 39.5, 41.2, 41.0, 37.4, 35.8, 49.6, 52.3, 52.3, 33.1, 35.2, 32.4, 36.8, 42.0, 32.7, 39.3, 38.9, 44.8, 39.8, 42.7, 38.4, 36.8, 36.7, 47.1, 39.8, 37.5, 41.8, 44.6, 36.2, 44.8, 31.8, 37.7, 37.4, 41.6, 37.2, 42.2, 42.8, 41.1, 41.5, 43.6, 37.6, 40.6, 42.4, 40.4, 41.5, 38.4, 44.7, 36.9, 41.5, 35.0, 28.8, 49.8, 43.9, 34.7, 39.1, 39.1, 41.5, 41.5, 41.4, 36.8, 39.8, 43.7, 33.5, 34.0, 41.8, 45.5, 33.0, 37.6, 42.1, 42.8, 41.1, 41.1, 36.6, 39.3, 45.2, 40.0, 42.2, 40.7, 39.2, 40.0, 40.0, 40.5, 42.5, 37.1, 37.9, 38.5, 47.6, 35.5, 44.0, 38.0, 39.4, 40.3, 40.3, 39.6, 38.5, 45.7, 45.0, 41.0, 38.7, 32.9, 44.2, 41.3, 51.3, 41.3, 21.8, 39.8, 42.2, 42.2, 39.7, 38.3, 42.3, 31.9, 39.5, 38.4, 42.9, 43.6, 39.5, 31.8, 41.3, 41.3, 39.7, 39.8, 40.6, 38.0, 42.4, 35.9, 44.4, 32.7, 43.6, 38.4, 43.5, 39.8, 43.4, 41.8, 39.3, 39.0, 39.8, 37.7, 39.4, 43.7, 43.6, 27.2, 38.0, 37.7, 37.5, 33.4, 38.6, 44.5, 38.1, 40.6, 39.5, 40.7, 41.8, 41.2, 36.2, 40.8, 44.0, 35.1, 40.3, 37.9, 35.2, 35.2, 43.5, 42.5, 35.4, 33.7, 0.0, 37.5, 41.6, 37.3, 33.5, 25.6, 33.5, 42.3, 39.8, 45.7, 33.0, 43.5, 35.1, 35.6, 38.4, 39.3, 39.6, 38.9, 43.0, 43.0, 40.6, 31.8, 42.3, 39.0, 44.6, 37.6, 41.0, 39.7, 40.1, 39.5, 43.4, 37.5, 35.7, 38.6, 36.1, 42.0, 43.0, 38.9, 35.4, 42.4, 41.9, 39.0, 35.6, 41.7, 40.6, 40.6, 38.6, 40.9, 35.7, 39.9, 38.9, 39.7, 37.6, 43.3, 44.9, 43.2, 41.4, 42.7, 42.5, 41.4, 45.9, 44.2, 40.9, 38.3, 41.6, 37.6, 31.4, 42.1, 41.7, 41.3, 35.6, 40.4, 39.7, 40.3, 39.8, 43.1, 43.5, 42.1, 41.0, 37.5, 43.4, 28.0, 37.5, 38.1, 41.0, 28.0, 44.3, 39.1, 37.1, 35.4, 39.6, 35.3, 41.4, 42.8, 38.7, 44.7, 43.5, 33.2, 36.3, 45.6, 36.6, 35.0, 42.0, 36.5, 36.1, 41.7, 43.4, 43.8, 39.9, 41.7, 41.9, 37.5, 41.6, 44.3, 43.4, 38.6, 40.9, 38.6, 35.3, 24.9, 24.9, 45.0, 41.0, 42.2, 40.6, 45.3, 36.2, 41.7, 44.8, 37.1, 44.4, 33.1, 45.7, 37.6, 39.4, 32.3, 48.7, 40.5, 40.9, 41.6, 35.2, 39.8, 37.9, 40.2, 37.8, 39.1, 36.7, 43.2, 38.3, 36.0, 39.8, 37.6, 42.9, 43.9, 41.4, 41.5, 42.0, 34.6, 40.9, 44.7, 43.4, 44.1, 42.4, 42.8, 38.2, 44.0, 37.7, 34.1, 45.5, 41.5, 45.4, 34.3, 36.3, 37.3, 38.4, 37.9, 32.6, 40.0, 42.8, 43.7, 38.1, 39.6, 38.8, 50.2, 39.1, 38.3, 43.4, 43.4, 39.0, 36.2, 39.9, 39.4, 40.2, 44.2, 45.8, 39.7, 38.3, 38.5, 38.5, 32.7, 48.0, 40.9, 38.5, 40.1, 42.4, 43.6, 41.0, 43.4, 38.3, 44.9, 43.7, 41.5, 35.7, 38.2, 39.4, 40.8, 37.6, 39.5, 43.8, 39.5, 39.5, 39.5, 42.2, 41.3, 41.3, 41.6, 42.5, 41.2, 42.0, 42.5, 44.0, 40.0, 42.2, 34.7, 40.0, 40.5, 38.4, 51.8, 51.8, 31.8, 42.4, 39.1, 42.5, 48.7, 36.1, 42.0, 45.1, 45.1, 42.5, 43.0, 40.0, 23.1, 36.1, 36.1, 39.5, 37.3, 44.2, 39.6, 39.5, 41.1, 39.1, 39.4, 34.7, 39.5, 32.4, 32.6, 32.6, 33.4, 39.6, 40.2, 38.7, 37.9, 39.0, 37.1, 36.9, 41.5, 34.2, 44.1, 44.1, 37.6, 40.9, 44.1, 41.2, 40.2, 41.1, 41.3, 39.9, 38.3, 44.2, 40.4, 40.4, 43.3, 39.2, 39.1, 37.5, 38.5, 36.1, 34.7, 39.8, 40.0, 31.3, 39.3, 46.7, 37.5, 43.2, 35.5, 41.1, 38.8, 44.3, 44.3, 36.4, 42.9, 38.2, 36.0, 41.7, 38.5, 37.8, 37.8, 35.9, 43.3, 44.9, 42.7, 40.4, 38.6, 34.5, 42.5, 39.5, 40.1, 32.3, 41.1, 40.2, 39.2, 44.0, 44.0, 34.7, 37.5, 43.4, 40.0, 40.0, 41.7, 41.1, 41.1, 41.1, 43.9, 39.3, 35.8, 44.8, 39.3, 39.1, 32.5, 41.3, 42.6, 50.1, 37.4, 39.4, 39.1, 35.6, 41.2, 41.2, 42.3, 37.5, 44.7, 38.6, 40.9, 37.2, 41.5, 37.5, 42.5, 38.6, 36.5, 42.2, 35.2, 52.2, 52.2, 42.2, 32.2, 32.2, 32.2, 41.2, 38.6, 39.5, 41.5, 42.8, 39.2, 43.8, 39.2, 42.5, 42.5, 42.5, 39.3, 40.3, 38.9, 42.5, 42.5, 32.4, 32.4, 37.6, 42.5, 35.5, 44.4, 38.4, 37.3, 40.0, 34.9, 38.6, 42.4, 41.0, 38.9, 36.2, 40.5, 38.8, 41.7, 41.6, 44.4, 41.2, 42.2, 40.3, 38.0, 39.0, 42.2, 39.4, 43.5, 34.7, 42.4, 42.4, 35.0, 41.5, 44.3, 39.6, 39.1, 48.3, 36.8, 39.8, 41.5, 34.0, 43.0, 37.6, 40.0, 40.7, 42.3, 39.7, 41.3, 40.5, 42.6, 37.6, 34.6, 39.9, 41.1, 35.8, 41.4, 41.8, 39.2, 35.4, 42.6, 37.1, 45.1, 40.8, 42.3, 43.7, 38.8, 38.2, 40.3, 37.0, 43.2, 41.3, 40.6, 39.4, 37.4, 41.6, 41.5, 33.6, 42.9, 35.8, 37.5, 43.3, 40.2, 39.3, 44.3, 37.9, 39.5, 37.6, 38.5, 43.4, 34.0, 40.1, 39.4, 40.9, 32.2, 39.0, 39.7, 42.5, 39.8, 40.4, 40.4, 38.8, 34.6, 41.8, 37.7, 37.4, 37.9, 36.9, 39.1, 37.8, 39.4, 36.2, 40.2, 34.7, 42.8, 42.8, 42.6, 37.6, 37.7, 40.8, 41.8, 34.2, 40.7, 41.1, 43.0, 36.7, 36.7, 43.5, 46.7, 36.9, 37.2, 38.1, 35.6, 40.6, 34.0, 44.2, 33.6, 40.3, 36.2, 43.6, 38.1, 41.6, 39.8, 40.0, 36.0, 41.5, 39.7, 44.2, 38.2, 40.1, 39.5, 40.0, 38.5, 42.6, 42.6, 41.1, 42.1, 34.1, 31.4, 41.3, 40.0, 40.0, 39.6, 40.1, 40.5, 37.3, 41.1, 36.1, 37.9, 36.4, 44.6, 38.6, 39.0, 43.1, 41.6, 41.6, 41.6, 41.6, 40.6, 38.6, 40.9, 39.6, 36.4, 41.8, 37.5, 39.5, 41.4, 43.2, 41.4, 38.3, 42.0, 41.6, 37.6, 37.6, 42.4, 41.4, 43.5, 38.7, 41.8, 40.2, 38.3, 41.1, 50.5, 48.2, 34.5, 43.2, 39.1, 39.6, 35.2, 41.4, 36.6, 52.7, 32.9, 41.3, 36.3, 34.5, 35.0, 41.0, 37.5, 33.4, 46.5, 44.3, 36.0, 32.6, 43.4, 35.6, 35.6, 39.7, 45.5, 39.7, 35.4, 39.0, 34.7, 41.7, 42.3, 41.7, 38.1, 39.0, 38.4, 34.9, 34.9, 38.4, 0.4, 38.6, 43.9, 35.3, 41.7, 36.2, 40.6, 35.1, 41.9, 37.1, 36.2, 33.6, 44.4, 30.1, 37.6, 41.0, 42.4, 41.0, 44.2, 35.2, 37.1, 42.6, 39.0, 35.2, 39.8, 37.9, 37.9, 38.0, 39.4, 44.1, 39.6, 38.0, 38.3, 43.4, 43.4, 38.4, 36.3, 36.0, 41.4, 37.8, 32.5, 38.4, 41.3, 41.3, 37.9, 33.9, 43.4, 43.4, 27.9, 42.0, 42.7, 40.0, 46.2, 37.0, 41.6, 44.0, 44.0, 43.4, 42.0, 39.9, 40.6, 39.9, 38.2, 42.9, 39.2, 37.5, 37.1, 38.4, 37.9, 37.5, 39.4, 46.5, 39.6, 42.0, 37.2, 32.4, 37.2, 42.5, 41.8, 42.9, 42.3, 39.3, 38.6, 41.0, 38.1, 39.2, 34.7, 39.0, 41.0, 41.7, 40.8, 41.0, 37.9, 33.2, 39.9, 38.5, 40.0, 42.5, 31.8, 38.5, 40.6, 40.6, 38.0, 43.6, 43.6, 41.0, 44.4, 44.9, 42.7, 39.2, 39.7, 29.7, 39.7, 41.5, 32.2, 40.6, 32.2, 40.8, 37.0, 37.0, 35.0, 37.5, 41.2, 41.2, 41.0, 33.5, 41.3, 42.5, 42.2, 42.6, 47.0, 33.1, 42.2, 42.2, 37.8, 40.8, 32.0, 23.1, 36.8, 39.9, 55.6, 38.6, 43.2, 32.8, 36.0, 37.1, 38.4, 43.1, 52.0, 37.3, 43.4, 39.5, 36.5, 38.3, 34.8, 40.9, 39.6, 39.4, 44.1, 44.1, 38.8, 37.6, 44.1, 43.5, 42.9, 38.3, 37.9, 40.2, 39.0, 41.5, 39.9, 32.8, 43.3, 40.9, 41.8, 38.0, 36.1, 36.3, 34.1, 40.8, 37.6, 37.4, 41.5, 40.5, 35.9, 36.7, 41.6, 38.9, 37.3, 35.6, 37.6, 30.4, 40.0, 40.6, 41.6, 27.4, 39.6, 37.5, 36.1, 37.5, 38.0, 40.4, 40.3, 32.2, 42.9, 43.5, 37.4, 40.6, 43.1, 39.5, 43.0, 34.4, 41.8, 41.8, 41.6, 35.6, 42.5, 41.7, 39.5, 30.7, 32.3, 40.2, 34.9, 39.3, 40.8, 33.7, 44.0, 40.6, 39.7, 38.8, 40.6, 39.0, 37.2, 41.7, 40.3, 40.8, 45.0, 35.2, 39.3, 36.5, 43.9, 39.3, 39.9, 41.7, 41.7, 36.2, 44.5, 43.1, 41.3, 41.0, 40.1, 41.3, 40.4, 43.2, 49.2, 38.8, 44.7, 36.6, 43.3, 40.4, 40.9, 40.1, 43.9, 31.2, 39.9, 35.6, 39.5, 36.5, 41.0, 37.6, 42.8, 44.4, 43.3, 37.6, 29.9, 29.9, 39.9, 41.0, 37.4, 41.5, 40.5, 43.3, 35.4, 36.8, 38.6, 40.9, 18.3, 37.3, 42.3, 37.6, 37.6, 36.2, 36.2, 42.0, 44.4, 42.7, 41.5, 39.6, 38.6, 43.5, 42.2, 44.1, 41.5, 44.3, 38.5, 43.9, 38.8, 39.5, 31.8, 42.4, 38.6, 38.4, 41.6, 36.2, 42.2, 29.4, 42.2, 40.3, 43.4, 42.4, 41.9, 41.9, 37.1, 41.5, 38.4, 39.4, 33.9, 44.3, 36.9, 40.6, 36.9, 36.9, 28.8, 41.5, 41.5, 39.9, 37.1, 37.9, 44.1, 37.7, 39.4, 41.5, 41.5, 45.2, 38.8, 42.3, 40.7, 45.1, 42.4, 45.0, 39.3, 38.3, 39.3, 40.0, 35.4, 44.8, 40.8, 39.2, 40.8, 39.6, 40.5, 40.3, 35.7, 0.0, 41.7, 40.1, 43.6, 39.4, 42.3, 42.3, 43.1, 37.5, 40.1, 38.4, 38.4, 37.3, 41.4, 40.3, 41.1, 43.1, 43.8, 28.2, 43.7, 40.8, 39.0, 42.7, 43.3, 42.3, 31.9, 31.9, 42.4, 40.9, 41.5, 42.0, 40.9, 44.2, 38.7, 41.3, 34.4, 34.4, 38.9, 37.3, 48.8, 39.0, 41.8, 37.5, 40.8, 36.4, 39.6, 39.6, 41.3, 40.7, 29.3, 43.5, 37.6, 34.7, 41.6, 39.9, 40.1, 35.9, 42.8, 34.7, 40.6, 40.8, 40.7, 41.0, 41.0, 37.8, 43.4, 44.0, 36.5, 39.9, 39.9, 39.0, 39.6, 40.4, 36.7, 37.4, 41.4, 40.4, 39.7, 43.8, 44.2, 38.5, 42.4, 43.5, 34.0, 37.4, 39.8, 43.0, 39.3, 42.5, 44.2, 37.3, 25.6, 39.2, 31.8, 44.1, 32.8, 33.0, 43.7, 36.9, 38.0, 43.6, 36.9, 38.1, 37.1, 43.7, 39.5, 39.0, 40.6, 39.6, 38.9, 40.9, 40.9, 38.7, 40.6, 43.9, 35.5, 42.7, 35.0, 41.0, 39.6, 39.5, 40.5, 39.8, 39.6, 43.4, 44.6, 39.4, 39.4, 37.6, 44.2, 35.6, 42.7, 39.0, 36.4, 38.0, 39.1, 37.6, 41.3, 42.5, 45.0, 39.6, 39.8, 32.2, 40.9, 38.8, 37.9, 42.8, 48.0, 34.0, 37.0, 36.1, 39.2, 40.5, 25.1, 41.0, 43.4, 38.5, 46.3, 42.6, 36.3, 36.3, 36.3, 42.1, 39.6, 40.1, 38.0, 38.0, 41.3, 33.2, 41.2, 42.7, 35.0, 50.7, 42.0, 43.0, 43.4, 49.1, 39.7, 51.1, 45.3, 38.9, 41.5, 41.7, 40.0, 40.7, 40.7, 47.8, 40.9, 36.2, 43.6, 40.2, 42.4, 45.1, 42.9, 45.5, 36.6, 38.4, 40.6, 42.5, 39.3, 40.6, 43.1, 37.7, 40.5, 37.6, 35.4, 42.7, 34.6, 35.7, 39.7, 38.3, 43.9, 42.0, 42.0, 40.1, 38.2, 39.5, 40.2, 37.4, 38.3, 42.6, 43.0, 37.6, 41.3, 37.6, 37.9, 41.5, 42.6, 37.8, 39.9, 39.2, 40.4, 42.1, 37.3, 37.3, 37.8, 48.8, 43.6, 41.6, 37.6, 38.2, 43.6, 32.2, 42.0, 45.5, 41.5, 40.5, 36.3, 36.3, 42.1, 38.4, 37.2, 46.5, 35.2, 38.8, 42.8, 37.1, 35.6, 37.7, 37.7, 39.6, 29.5, 40.1, 36.9, 38.5, 32.4, 43.1, 36.5, 39.5, 33.2, 38.8, 41.1, 41.0, 40.2, 40.2, 40.8, 45.8, 40.0, 39.5, 46.6, 41.9, 36.4, 35.8, 35.8, 36.8, 43.6, 35.8, 43.2, 43.2, 39.2, 40.4, 43.2, 35.4, 38.7, 29.7, 42.4, 29.7, 39.7, 40.8, 32.2, 39.3, 37.0, 45.9, 39.7, 39.5, 38.0, 45.1, 41.6, 41.2, 40.2, 37.8, 34.6, 42.6, 44.2, 33.1, 42.5, 31.6, 37.8, 37.8, 34.3, 44.1, 32.1, 42.1, 38.1, 42.1, 42.7, 41.1, 38.0, 38.8, 36.2, 40.2, 37.4, 38.0, 41.4, 37.9, 32.4, 32.1, 42.4, 37.4, 39.6, 39.6, 36.5, 35.8, 39.6, 43.0, 34.9, 38.9, 44.1, 40.7, 41.1, 43.4, 42.0, 40.9, 41.3, 34.3, 43.4, 41.0, 43.6, 40.9, 43.4, 35.2, 37.8, 43.9, 38.0, 41.4, 36.8, 36.8, 40.3, 42.4, 31.3, 29.3, 41.0, 37.5, 35.1, 39.3, 36.1, 40.6, 32.2, 36.0, 40.6, 41.7, 38.5, 45.6, 37.8, 44.7, 37.5, 36.7, 37.1, 44.2, 39.0, 42.7, 40.4, 38.8, 38.8, 1.5, 33.5, 36.4, 37.6, 40.5, 42.3, 42.9, 36.3, 37.4, 37.8, 37.8, 37.9, 38.8, 37.0, 35.2, 42.5, 41.7, 41.7, 42.0, 41.7, 40.8, 37.9, 37.9, 32.6, 39.3, 35.4, 42.6, 38.8, 42.6, 41.0, 39.8, 38.1, 41.9, 38.3, 42.1, 37.2, 44.8, 38.6, 37.5, 36.8, 37.4, 37.1, 39.8, 40.2, 36.5, 37.8, 40.1, 36.8, 34.7, 42.9, 43.3, 38.8, 38.8, 40.4, 34.3, 39.9, 41.0, 40.4, 41.6, 39.1, 39.1, 42.8, 41.5, 34.0, 38.8, 34.0, 44.4, 42.1, 42.1, 41.5, 39.5, 39.8, 44.3, 43.4, 43.2, 29.6, 39.8, 35.5, 47.3, 42.9, 39.6, 42.8, 35.7, 38.7, 38.7, 38.7, 40.8, 33.6, 40.6, 38.8, 44.8, 39.7, 39.7, 39.4, 32.6, 53.4, 40.3, 42.2, 38.4, 39.7, 44.3, 34.7, 40.4, 45.8, 49.8, 37.7, 37.7, 37.1, 39.7, 39.4, 39.9, 41.5, 42.8, 45.2, 39.3, 39.5, 35.5, 41.1, 41.3, 41.8, 39.3, 39.3, 38.0, 35.9, 35.5, 40.0, 35.4, 33.0, 38.6, 35.4, 40.3, 43.3, 42.0, 34.6, 39.8, 27.9, 39.5, 40.0, 39.4, 38.1, 43.4, 38.1, 41.5, 39.0, 42.0, 42.2, 43.1, 39.0, 32.9, 40.4, 41.3, 39.1, 39.1, 33.0, 35.9, 38.3, 33.4, 40.6, 39.7, 28.9, 39.1, 37.6, 42.9, 38.5, 41.5, 32.9, 40.3, 42.1, 45.4, 46.0, 42.0, 41.0, 0.1, 39.3, 41.8, 39.8, 40.5, 43.5, 39.2, 41.0, 39.9, 36.9, 41.1, 41.6, 41.6, 37.3, 44.5, 40.4, 41.6, 40.6, 40.5, 42.4, 41.0, 41.8, 42.7, 44.6, 36.2, 36.5, 39.6, 39.6, 44.0, 44.2, 40.4, 37.5, 38.5, 38.1, 38.5, 42.1, 44.2, 32.8, 36.2, 40.9, 42.3, 30.7, 36.8, 44.2, 47.0, 33.5, 40.2, 35.7, 43.5, 37.0, 41.3, 35.1, 36.9, 40.0, 43.3, 41.5, 39.7, 45.2, 45.2, 44.5, 41.5, 39.6, 38.9, 31.8, 39.4, 39.4, 32.5, 43.9, 34.4, 38.4, 40.6, 43.3, 39.2, 39.4, 39.3, 40.3, 40.3, 38.6, 41.1, 41.1, 37.9, 39.7, 40.2, 41.2, 37.2, 44.4, 43.1, 37.0, 39.5, 39.5, 45.9, 32.9, 40.0, 45.5, 41.4, 40.9, 43.1, 37.6, 44.6, 39.2, 41.5, 34.1, 43.5, 34.1, 38.0, 36.9, 37.0, 39.2, 40.6, 41.8, 41.8, 36.3, 40.5, 39.9, 31.6, 42.9, 33.9, 37.1, 38.0, 39.6, 41.4, 43.2, 38.2, 39.0, 36.6, 42.2, 38.7, 36.6, 37.5, 42.2, 38.6, 45.6, 36.3, 37.5, 38.0, 44.6, 36.1, 36.7, 39.0, 37.2, 42.8, 42.5, 37.5, 42.2, 32.5, 45.9, 44.3, 42.4, 40.7, 38.4, 39.6, 41.9, 41.0, 44.5, 40.7, 40.7, 39.7, 43.0, 47.1, 43.9, 43.9, 41.5, 39.9, 37.5, 40.6, 40.9, 37.5, 29.6, 37.0, 39.6, 37.1, 42.9, 37.1, 37.1, 43.1, 38.6, 33.6, 44.4, 39.6, 42.0, 28.9, 34.4, 40.1, 41.1, 40.1, 44.4, 40.7, 39.4, 37.1, 41.6, 39.1, 31.2, 41.3, 42.7, 35.6, 43.5, 42.6, 46.2, 40.4, 40.4, 43.4, 42.0, 38.6, 38.1, 44.7, 40.6, 37.1, 35.4, 41.5, 38.2, 37.5, 42.7, 38.6, 42.1, 38.2, 38.4, 35.7, 37.9, 32.6, 46.5, 37.1, 43.1, 39.1, 42.3, 38.8, 43.0, 40.5, 38.5, 39.4, 46.4, 35.4, 38.8, 39.5, 40.7, 39.0, 39.9, 38.0, 43.8, 39.5, 43.8, 45.3, 33.6, 44.2, 41.6, 42.5, 40.6, 41.5, 41.9, 40.4, 35.8, 42.7, 41.0, 42.7, 41.0, 44.7, 44.7, 44.7, 39.0, 40.1, 29.7, 38.9, 39.0, 44.3, 39.2, 41.0, 43.1, 41.9, 42.9, 36.1, 41.2, 41.3, 33.1, 42.5, 36.2, 43.5, 38.8, 33.1, 51.8, 42.0, 40.8, 41.0, 38.8, 42.3, 42.8, 36.1, 34.8, 38.2, 37.2, 36.3, 36.3, 41.7, 41.1, 41.1, 41.1, 41.7, 43.6, 41.7, 52.0, 44.6, 39.5, 44.8, 42.0, 35.1, 40.3, 34.5, 38.3, 38.3, 37.1, 40.2, 37.9, 39.6, 40.7, 41.0, 41.1, 41.5, 42.1, 34.3, 41.2, 38.3, 40.9, 34.1, 34.1, 40.9, 37.7, 43.6, 37.5, 41.5, 44.7, 40.0, 36.9, 41.4, 42.1, 44.2, 31.3, 41.1, 35.1, 35.1, 39.4, 35.5, 37.4, 32.2, 39.5, 40.5, 36.0, 38.8, 40.6, 40.6, 41.7, 42.0, 41.0, 34.6, 34.4, 32.3, 36.2, 41.6, 44.4, 38.7, 37.5, 39.4, 38.7, 41.8, 41.6, 40.4, 40.5, 40.4, 41.4, 39.5, 38.7, 34.8, 40.2, 42.4, 36.9, 37.6, 36.9, 33.7, 40.1, 39.8, 38.8, 51.3, 44.9, 36.9, 48.9, 35.8, 41.7, 43.1, 42.3, 42.4, 39.8, 42.8, 40.2, 37.4, 37.4, 40.3, 45.3, 38.6, 37.1, 36.5, 40.9, 42.2, 38.8, 42.9, 39.9, 40.1, 35.8, 38.6, 38.6, 41.7, 39.2, 42.3, 37.6, 51.4, 38.8, 31.1, 42.5, 39.9, 42.3, 41.0, 38.8, 42.4, 39.5, 52.3, 39.9, 36.4, 35.2, 39.8, 32.7, 37.6, 36.2, 37.1, 37.6, 34.9, 35.6, 41.9, 41.7, 44.5, 33.5, 39.4, 41.8, 40.6, 41.2, 38.6, 38.6, 41.7, 41.7, 34.4, 38.2, 38.9, 43.4, 42.4, 37.1, 39.0, 42.2, 42.4, 36.9, 37.7, 38.8, 42.7, 38.9, 41.9, 40.4, 42.4, 43.6, 43.6, 39.9, 44.1, 40.7, 37.4, 37.9, 39.7, 43.2, 43.6, 35.7, 33.0, 42.4, 39.7, 40.3, 37.8, 42.3, 42.4, 38.6, 42.0, 37.3, 42.2, 41.5, 41.5, 32.9, 22.2, 38.3, 38.3, 43.8, 33.0, 39.7, 39.7, 39.0, 33.4, 39.5, 32.2, 39.2, 38.4, 39.9, 48.6, 40.5, 40.0, 43.9, 35.3, 51.4, 42.1, 40.0, 27.3, 33.6, 38.0, 40.3, 41.6, 43.0, 36.9, 36.1, 36.2, 34.7, 41.6, 41.6, 42.8, 40.3, 42.7, 40.4, 44.1, 40.3, 40.7, 40.3, 41.4, 37.8, 39.0, 39.6, 43.6, 36.7, 42.9, 41.6, 37.5, 33.6, 47.9, 37.2, 43.0, 33.7, 37.2, 37.2, 43.0, 0.0, 40.6, 43.6, 25.6, 35.1, 42.4, 41.6, 35.5, 42.3, 39.8, 40.4, 39.5, 38.0, 39.4, 41.5, 34.4, 35.6, 38.2, 38.9, 39.4, 39.6, 42.3, 39.9, 39.4, 43.0, 42.6, 43.9, 43.9, 34.1, 35.5, 39.6, 36.5, 34.2, 38.5, 39.6, 42.0, 42.6, 40.3, 38.6, 43.5, 40.7, 38.6, 40.1, 38.3, 43.6, 40.5, 40.5, 42.4, 43.0, 39.2, 38.9, 38.9, 42.1, 41.1, 37.6, 41.2, 43.6, 39.3, 39.6, 41.2, 42.9, 40.1, 39.6, 42.5, 41.3, 47.1, 39.3, 42.1, 40.4, 41.6, 42.6, 43.8, 38.4, 39.7, 31.9, 40.3, 39.8, 39.8, 43.5, 43.4, 38.1, 42.7, 42.7, 42.7, 44.5, 41.5, 43.9, 44.3, 42.1, 39.1, 41.4, 41.4, 36.7, 42.1, 43.5, 35.3, 29.4, 39.4, 41.3, 38.5, 42.7, 36.3, 36.5, 50.4, 41.7, 50.8, 42.3, 37.6, 37.6, 44.2, 40.3, 29.4, 39.6, 44.8, 39.1, 38.6, 42.4, 39.6, 37.9, 40.4, 24.9, 38.5, 42.1, 40.3, 42.7, 39.0, 40.6, 48.9, 40.9, 43.9, 36.8, 43.1, 44.8, 38.2, 44.4, 44.0, 35.4, 41.7, 44.8, 40.9, 36.7, 32.5, 42.6, 40.3, 45.4, 37.7, 40.5, 41.6, 35.7, 38.6, 43.2, 37.9, 38.0, 40.2, 38.0, 34.3, 34.3, 37.4, 40.9, 38.4, 36.7, 39.0, 38.4, 39.6, 37.9, 42.9, 38.5, 43.5, 33.6, 42.0, 37.2, 38.1, 43.7, 36.4, 40.6, 37.1, 34.5, 39.8, 42.6, 38.6, 45.4, 38.2, 40.1, 42.2, 49.9, 38.9, 40.5, 44.0, 38.0, 40.4, 40.4, 35.6, 45.5, 38.5, 39.4, 38.2, 38.3, 43.4, 39.5, 39.4, 38.1, 34.4, 39.9, 36.8, 39.9, 39.7, 39.2, 42.7, 38.0, 42.3, 40.0, 35.0, 39.9, 39.9, 40.6, 39.7, 37.5, 38.0, 40.2, 40.2, 40.4, 33.1, 43.6, 43.6, 42.5, 38.9, 39.7, 41.1, 36.2, 31.5, 36.9, 39.3, 43.7, 38.5, 42.7, 39.5, 42.1, 40.2, 41.2, 36.4, 36.5, 37.8, 36.8, 34.6, 31.9, 43.5, 38.8, 39.1, 42.5, 31.6, 31.6, 35.0, 44.0, 39.1, 39.5, 41.0, 53.6, 40.0, 40.0, 37.2, 39.5, 36.3, 40.9, 39.1, 44.3, 40.9, 52.0, 39.5, 37.4, 35.9, 41.2, 32.1, 41.2, 34.5, 37.5, 45.6, 35.9, 40.0, 40.9, 37.1, 38.9, 39.4, 36.9, 34.6, 42.0, 33.8, 38.0, 37.8, 40.4, 40.1, 36.5, 40.9, 34.3, 40.0, 39.5, 37.7, 37.7, 34.1, 34.1, 37.9, 42.2, 38.5, 38.8, 36.3, 33.1, 36.6, 41.5, 39.6, 36.7, 43.9, 36.9, 40.5, 39.3, 40.8, 42.4, 35.5, 41.0, 44.3, 42.5, 34.6, 39.3, 36.1, 40.3, 42.7, 35.1, 36.5, 41.0, 40.9, 38.7, 38.5, 43.0, 40.0, 38.8, 38.4, 38.7, 37.5, 40.4, 43.2, 40.3, 44.5, 41.0, 41.0, 38.2, 39.3, 37.6, 39.9, 39.0, 39.0, 34.6, 41.6, 39.8, 37.9, 44.4, 37.0, 41.7, 43.0, 41.9, 42.2, 39.9, 36.5, 42.9, 39.3, 32.5, 37.9, 37.0, 41.0, 42.2, 40.4, 41.5, 37.2, 42.2, 52.2, 38.9, 38.8, 39.5, 40.2, 38.6, 38.6, 38.6, 41.6, 38.6, 39.9, 42.3, 39.7, 41.2, 37.4, 40.6, 39.5, 40.2, 38.4, 36.9, 36.4, 39.4, 43.1, 40.3, 43.2, 49.1, 37.6, 44.3, 40.5, 36.2, 34.9, 36.8, 34.9, 41.7, 44.3, 42.8, 44.5, 39.8, 38.9, 37.5, 37.5, 38.7, 41.8, 39.8, 36.1, 38.6, 41.2, 41.7, 39.4, 39.4, 39.5, 40.4, 35.3, 41.2, 37.2, 42.3, 29.4, 40.3, 39.4, 33.7, 41.6, 34.7, 39.6, 40.8, 45.1, 42.5, 43.4, 34.8, 38.5, 40.4, 44.1, 35.5, 40.7, 41.5, 41.1, 43.6, 39.9, 40.0, 40.0, 35.4, 39.4, 38.4, 35.9, 34.6, 37.9, 35.7, 0.0, 39.5, 39.5, 35.9, 42.3, 41.6, 40.3, 38.8, 37.7, 42.3, 42.9, 42.2, 41.3, 41.7, 28.2, 42.7, 43.8, 38.3, 40.2, 42.7, 37.1, 37.6, 37.6, 35.9, 35.8, 33.3, 40.6, 45.9, 41.2, 40.0, 40.5, 38.9, 38.3, 40.4, 43.7, 39.8, 38.6, 39.8, 37.7, 41.2, 42.1, 37.7, 39.2, 38.0, 38.0, 33.3, 37.5, 42.0, 37.3, 40.9, 42.3, 34.7, 39.8, 41.5, 39.5, 39.5, 40.7, 40.7, 34.2, 31.2, 37.8, 42.7, 42.3, 43.6, 41.4, 38.1, 40.6, 35.2, 37.2, 33.7, 42.3, 0.0, 0.0, 44.2, 40.2, 37.0, 38.0, 39.4, 43.4, 36.0, 45.2, 40.1, 39.1, 40.0, 41.5, 37.7, 39.1, 38.0, 34.2, 39.4, 38.7, 43.0, 42.9, 42.6, 37.1, 39.0, 40.0, 39.5, 41.7, 36.4, 37.9, 42.4, 43.5, 41.1, 43.1, 37.5, 39.0, 42.4, 41.9, 41.3, 40.9, 36.3, 35.0, 41.6, 35.1, 39.9, 41.4, 43.8, 46.2, 42.4, 41.4, 42.2, 40.0, 40.0, 45.2, 40.9, 42.0, 42.1, 42.1, 41.3, 40.7, 41.4, 39.7, 36.3, 38.1, 36.0, 36.1, 39.4, 43.9, 43.0, 37.0, 33.3, 37.5, 35.5, 42.7, 42.7, 44.9, 41.0, 40.9, 41.2, 39.1, 34.4, 40.5, 43.1, 43.2, 41.7, 42.6, 42.6, 42.9, 42.8, 36.6, 38.7, 44.1, 39.1, 38.0, 34.5, 33.4, 38.0, 43.2, 39.2, 35.2, 40.2, 37.5, 40.0, 39.5, 41.7, 39.0, 41.5, 44.3, 43.6, 47.8, 39.6, 38.1, 39.0, 43.2, 35.6, 38.4, 43.6, 44.1, 39.4, 39.9, 37.5, 39.9, 39.5, 43.9, 43.9, 41.5, 39.3, 41.9, 32.6, 38.6, 37.2, 38.1, 39.6, 39.4, 35.4, 44.4, 44.4, 44.4, 38.5, 41.7, 36.6, 39.7, 39.3, 41.0, 36.3, 43.5, 42.0, 43.9, 44.1, 35.3, 41.5, 43.4, 37.4, 39.1, 39.3, 39.3, 41.7, 39.3, 42.0, 35.9, 44.6, 44.6, 40.0, 44.8, 41.6, 39.2, 42.6, 40.4, 41.6, 42.1, 37.3, 38.9, 0.0, 31.8, 38.2, 44.0, 28.1, 38.7, 40.5, 43.6, 34.5, 45.4, 36.3, 34.3, 38.6, 35.7, 38.4, 36.2, 42.2, 39.0, 40.8, 40.8, 44.0, 44.0, 35.6, 39.4, 41.5, 41.5, 37.8, 39.3, 43.4, 33.2, 41.0, 38.1, 39.0, 39.0, 43.8, 43.8, 41.8, 35.0, 38.5, 40.8, 37.0, 42.5, 38.6, 30.3, 45.8, 39.9, 41.6, 31.7, 41.0, 43.2, 39.2, 38.3, 37.9, 39.2, 41.9, 31.5, 38.5, 36.5, 41.6, 37.0, 32.5, 37.8, 40.0, 44.2, 0.0, 40.8, 40.8, 42.5, 32.1, 39.1, 44.5, 41.8, 43.6, 39.1, 42.5, 35.6, 39.4, 39.0, 38.1, 40.1, 36.3, 32.8, 32.8, 41.7, 41.1, 39.5, 42.7, 43.2, 40.9, 38.4, 41.4, 41.4, 35.9, 41.4, 37.9, 43.8, 45.4, 41.1, 44.7, 45.6, 40.4, 38.7, 37.8, 38.5, 38.6, 38.6, 42.9, 37.4, 41.5, 40.3, 37.7, 38.5, 41.1, 41.3, 43.0, 42.4, 40.5, 40.2, 37.8, 38.1, 36.0, 38.1, 41.3, 30.4, 41.5, 41.8, 41.0, 36.4, 36.5, 40.4, 40.6, 34.4, 41.7, 43.3, 48.5, 36.3, 39.0, 41.0, 41.2, 37.5, 42.1, 36.4, 40.6, 40.0, 43.3, 43.3, 27.9, 40.8, 30.2, 30.2, 36.2, 36.2, 36.2, 39.8, 35.3, 35.3, 38.4, 39.6, 37.2, 36.9, 42.0, 42.9, 28.9, 41.9, 33.0, 40.8, 36.2, 44.5, 42.6, 38.8, 38.1, 42.9, 40.3, 33.1, 33.2, 36.2, 42.5, 42.5, 35.0, 49.2, 40.3, 35.4, 39.1, 38.6, 40.9, 37.8, 42.2, 37.6, 43.4, 41.6, 39.9, 42.0, 43.1, 39.9, 45.6, 42.3, 35.8, 42.8, 31.1, 45.7, 37.9, 38.8, 37.4, 41.5, 41.5, 43.7, 34.4, 35.7, 42.4, 38.4, 40.5, 34.6, 40.1, 38.6, 39.8, 37.3, 41.0, 43.5, 40.0, 40.0, 41.7, 41.0, 44.3, 38.9, 38.9, 39.4, 37.5, 41.9, 39.4, 38.6, 35.6, 39.4, 38.7, 38.2, 36.9, 47.2, 29.4, 41.1, 40.3, 43.5, 39.0, 39.4, 41.5, 34.7, 39.1, 42.1, 38.3, 35.5, 40.7, 39.0, 39.0, 39.3, 41.0, 45.1, 39.9, 41.1, 35.5, 41.1, 41.4, 38.0, 40.8, 38.1, 42.6, 40.7, 39.2, 39.5, 39.4, 40.0, 40.5, 39.7, 39.5, 37.1, 40.1, 41.5, 33.0, 42.3, 41.5, 42.3, 40.8, 40.1, 43.7, 40.1, 42.0, 41.6, 37.3, 42.9, 41.6, 40.3, 45.7, 32.6, 37.5, 32.9, 44.2, 40.4, 34.7, 38.3, 39.1, 39.1, 43.9, 40.9, 42.7, 42.3, 37.6, 32.4, 39.1, 40.0, 39.7, 46.0, 36.5, 43.3, 42.4, 37.3, 34.6, 42.1, 42.1, 38.3, 40.0, 39.8, 40.5, 27.2, 41.9, 40.5, 41.8, 41.9, 41.6, 39.9, 35.4, 39.4, 37.8, 39.6, 40.9, 38.3, 34.7, 41.6, 41.6, 39.5, 40.5, 39.0, 37.6, 34.2, 41.8, 40.7, 40.7, 37.6, 31.2, 40.7, 40.8, 33.5, 39.0, 43.0, 40.4, 37.5, 35.6, 41.5, 33.6, 40.3, 37.8, 40.9, 37.5, 37.5, 42.5, 36.8, 36.5, 40.3, 40.1, 25.6, 40.0, 39.8, 43.3, 43.4, 43.4, 38.5, 36.0, 38.2, 37.1, 41.5, 37.7, 39.6, 36.1, 42.3, 40.6, 31.8, 31.8, 34.0, 37.1, 31.4, 39.2, 39.5, 43.5, 37.3, 40.5, 40.5, 39.6, 38.3, 40.6, 48.9, 41.1, 37.1, 37.1, 41.3, 41.8, 28.0, 35.6, 40.6, 43.6, 38.1, 41.7, 39.5, 40.9, 40.7, 43.8, 38.8, 40.8, 39.9, 37.4, 44.2, 41.4, 38.3, 40.4, 41.5, 38.8, 41.4, 41.4, 37.5, 39.7, 39.8, 40.3, 41.9, 40.2, 43.5, 36.1, 33.3, 39.4, 32.9, 32.9, 37.0, 40.6, 41.8, 36.7, 38.8, 38.2, 38.1, 38.1, 38.1, 44.1, 40.9, 34.5, 41.2, 38.0, 43.9, 42.6, 41.2, 45.1, 42.8, 39.4, 37.2, 41.7, 43.0, 41.2, 34.5, 39.9, 42.0, 41.2, 42.2, 44.1, 42.7, 35.1, 46.0, 39.9, 30.2, 34.6, 37.1, 41.7, 44.2, 44.5, 39.5, 40.7, 37.9, 39.2, 44.3, 40.4, 41.3, 38.2, 35.3, 37.9, 34.5, 34.9, 39.3, 36.6, 37.4, 40.5, 37.7, 38.1, 30.1, 41.2, 39.1, 41.1, 46.2, 40.5, 40.5, 39.7, 39.1, 39.1, 34.6, 37.7, 37.1, 36.4, 39.0, 39.8, 38.7, 37.8, 37.8, 41.9, 38.4, 41.3, 43.5, 41.9, 43.5, 42.9, 44.6, 40.0, 45.0, 43.4, 43.4, 39.9, 37.1, 38.9, 43.7, 45.4, 38.2, 38.2, 40.5, 45.4, 39.8, 33.9, 43.5, 42.7, 38.6, 35.7, 36.3, 38.4, 37.1, 42.5, 36.9, 40.0, 47.7, 37.1, 42.3, 38.1, 37.2, 45.3, 35.6, 39.3, 39.3, 42.5, 35.6, 36.2, 42.3, 39.9, 39.9, 41.2, 40.4, 38.5, 41.6, 39.7, 42.5, 35.0, 39.0, 39.0, 44.9, 36.7, 41.8, 42.7, 42.7, 40.6, 35.3, 41.6, 33.7, 39.9, 43.6, 43.6, 41.9, 44.4, 44.7, 43.6, 38.3, 41.5, 32.2, 40.1, 40.1, 40.1, 39.4, 37.6, 42.4, 40.0, 42.8, 37.0, 41.1, 37.4, 36.2, 42.9, 42.2, 40.8, 48.7, 43.6, 42.0, 38.6, 39.8, 42.0, 43.8, 38.6, 36.3, 41.1, 41.1, 41.1, 43.2, 52.0, 42.2, 38.0, 35.9, 41.1, 41.4, 41.1, 41.2, 41.2, 44.4, 36.7, 34.8, 39.1, 38.7, 39.0, 37.1, 41.9, 41.4, 38.6, 37.6, 36.3, 39.5, 41.1, 40.1, 42.1, 38.3, 41.7, 37.3, 36.3, 20.6, 34.1, 34.1, 41.3, 37.2, 39.2, 37.6, 36.0, 38.4, 43.2, 40.5, 40.5, 36.7, 37.6, 42.6, 36.9, 37.9, 34.7, 40.9, 41.6, 43.0, 44.5, 40.1, 38.5, 40.3, 38.5, 37.6, 37.6, 34.6, 32.3, 32.3, 44.7, 39.4, 42.2, 44.9, 39.0, 42.7, 44.0, 39.3, 35.8, 38.3, 41.9, 42.4, 39.3, 37.7, 40.6, 42.1, 41.1, 33.7, 40.1, 34.7, 34.7, 38.8, 36.8, 51.8, 36.2, 37.9, 43.7, 36.5, 38.4, 39.3, 42.4, 39.8, 42.9, 35.6, 43.1, 39.9, 42.8, 38.7, 35.4, 35.4, 38.8, 44.7, 38.6, 47.2, 40.0, 33.5, 39.9, 47.7, 45.9, 40.4, 40.5, 36.0, 39.9, 38.6, 39.2, 39.4, 43.3, 42.8, 41.5, 42.8, 31.1, 39.9, 45.7, 29.6, 35.3, 39.9, 43.3, 36.8, 40.9, 37.6, 44.3, 37.5, 32.9, 32.9, 41.7, 41.7, 40.6, 39.6, 44.3, 47.1, 37.5, 39.8, 37.1, 40.8, 36.5, 39.7, 31.8, 39.3, 39.3, 40.8, 40.8, 42.2, 29.4, 49.9, 38.6, 37.6, 38.6, 37.1, 39.1, 33.7, 45.8, 41.5, 38.6, 43.9, 35.3, 37.7, 42.1, 41.8, 44.1, 34.6, 35.5, 43.7, 37.4, 42.8, 43.0, 30.5, 39.0, 42.3, 42.3, 37.6, 36.6, 45.5, 41.0, 42.6, 42.4, 41.5, 42.1, 35.9, 42.8, 34.6, 33.5, 39.9, 41.1, 39.7, 35.8, 45.2, 41.4, 43.6, 39.1, 38.8, 39.7, 33.0, 39.4, 35.9, 39.7, 34.4, 39.2, 43.6, 35.7, 35.7, 37.3, 47.6, 39.7, 39.7, 42.3, 37.8, 44.0, 36.5, 42.0, 41.4, 37.3, 41.5, 41.4, 38.8, 41.5, 39.1, 37.5, 28.2, 42.0, 35.3, 43.4, 42.7, 39.1, 36.7, 38.4, 42.9, 43.8, 38.5, 39.7, 40.7, 39.5, 45.9, 44.2, 27.3, 34.4, 33.9, 42.5, 42.0, 36.5, 37.0, 42.0, 42.4, 39.7, 39.4, 41.5, 43.7, 34.1, 42.1, 37.7, 36.5, 42.1, 39.4, 37.8, 42.0, 37.3, 41.6, 36.9, 40.6, 34.6, 46.7, 40.3, 41.2, 40.7, 40.7, 40.7, 43.3, 37.8, 41.1, 38.5, 35.6, 40.6, 42.9, 35.4, 40.4, 38.7, 37.2, 41.1, 30.7, 41.8, 41.6, 45.0, 45.0, 44.4, 37.7, 42.3, 42.3, 39.6, 37.0, 32.8, 35.1, 42.2, 43.3, 36.0, 39.3, 39.3, 41.6, 41.0, 38.2, 40.8, 39.9, 39.0, 39.1, 42.1, 42.6, 39.6, 37.0, 40.0, 41.1, 41.1, 37.9, 40.6, 37.1, 39.1, 40.6, 39.0, 40.0, 42.1, 43.1, 43.6, 38.3, 36.7, 43.7, 41.3, 41.2, 41.6, 41.2, 44.4, 44.4, 37.6, 37.8, 39.6, 45.0, 44.2, 35.6, 42.0, 43.6, 35.3, 30.0, 41.3, 39.2, 42.9, 39.7, 43.8, 37.5, 34.1, 43.9, 37.2, 38.8, 37.9, 43.9, 44.3, 38.2, 38.6, 43.1, 38.0, 39.9, 42.1, 36.3, 42.1, 35.9, 38.1, 32.9, 39.9, 35.5, 38.0, 42.8, 44.3, 39.7, 44.1, 41.8, 39.2, 39.7, 34.6, 41.5, 36.7, 33.4, 40.1, 40.1, 38.5, 40.8, 24.9, 42.1, 38.6, 42.8, 37.5, 40.3, 43.9, 39.9, 39.7, 36.6, 40.3, 35.0, 43.5, 43.1, 41.7, 35.4, 36.6, 28.9, 40.9, 32.3, 39.1, 34.9, 37.7, 34.6, 34.6, 38.7, 42.0, 42.0, 39.0, 43.9, 39.0, 37.9, 39.1, 38.4, 41.5, 41.5, 31.2, 36.3, 44.4, 39.2, 41.3, 32.5, 41.2, 46.4, 38.5, 39.3, 44.6, 44.8, 42.0, 38.1, 42.4, 44.5, 42.6, 41.1, 42.4, 44.1, 43.6, 44.0, 43.8, 43.0, 45.4, 36.3, 37.9, 44.1, 35.8, 38.2, 39.3, 37.9, 37.9, 42.1, 43.1, 43.1, 46.7, 40.5, 42.2, 40.8, 40.1, 39.1, 38.8, 39.5, 37.4, 42.5, 43.4, 39.5, 44.0, 35.8, 36.8, 40.8, 38.5, 38.5, 43.8, 38.5, 42.0, 38.1, 31.7, 43.2, 43.6, 43.6, 43.0, 34.8, 38.8, 38.7, 38.8, 38.9, 42.1, 38.5, 38.5, 37.0, 38.5, 36.4, 40.2, 42.2, 34.6, 40.8, 43.7, 37.1, 42.5, 43.6, 41.4, 38.5, 42.5, 34.5, 42.3, 36.2, 31.7, 38.6, 39.4, 38.9, 38.8, 39.5, 38.6, 43.2, 44.2, 41.7, 41.7, 42.7, 39.4, 41.2, 34.7, 35.7, 42.1, 42.0, 36.3, 35.0], "nao_classif": [34.1, 34.1, 35.8, 34.6, 34.4, 36.7, 38.1, 35.8, 37.7, 33.0, 38.2, 35.2, 39.1, 44.4, 35.7, 44.1, 35.2, 38.3, 49.4, 32.9, 47.7, 37.5, 37.5, 43.8, 41.0, 36.0, 36.9, 41.5, 41.5, 37.6, 47.5, 43.2, 32.8, 32.8, 26.1, 26.1, 35.2, 34.6, 37.8, 41.8, 36.5, 35.9, 35.4, 35.0, 41.5, 39.7, 38.5, 40.0, 29.7, 32.0, 38.5, 33.5, 41.7, 35.5, 38.2, 39.1, 44.5, 32.0, 31.7, 31.7, 38.3, 38.9, 27.2, 35.0, 38.7, 34.4, 34.4, 34.8, 42.3, 35.6, 33.0, 33.6, 34.8, 34.3, 28.0, 44.0, 36.0, 37.7, 35.1, 32.2, 32.3, 38.2, 43.1, 38.1, 34.3, 33.9, 46.3, 42.9, 34.7, 30.1, 39.4, 41.7, 36.2, 37.6, 31.3, 41.3, 41.3, 35.2, 30.7, 33.5, 37.0, 42.3, 41.2, 36.3, 42.2, 33.5, 45.4, 34.6, 36.4, 28.5, 43.2, 42.6, 37.2, 47.5, 47.5, 40.3, 40.3, 34.9, 32.4, 34.4, 31.6, 34.9, 24.9, 24.9, 46.6, 46.6, 36.7, 50.2, 37.1, 31.6, 34.6, 34.6, 37.0, 45.4, 37.9, 38.7, 38.7, 38.1, 34.0, 34.4, 31.1, 56.9, 34.0, 34.0, 34.2, 39.9, 28.7, 33.6, 32.4, 39.5, 39.5, 28.1, 45.8, 43.5, 37.5, 37.8, 37.8, 36.7, 32.9, 35.4, 36.9, 32.0, 35.6, 31.9, 43.7, 35.2, 44.9, 31.6, 34.1, 34.4, 36.4, 36.4, 32.2, 38.0, 34.9, 32.8, 39.1, 39.1, 39.3, 36.9, 36.8, 37.1, 37.0, 44.1, 33.4, 33.4, 33.4, 33.4, 41.9, 40.4, 50.1, 46.9, 40.4, 32.4, 44.5, 41.2, 38.8, 34.3, 36.9, 41.5, 41.5, 34.0, 32.5, 47.5, 39.2, 26.7, 34.6, 35.2, 37.8, 47.0, 38.8, 34.6, 35.0, 38.8, 41.8, 38.3, 31.5, 31.5, 36.3, 30.2, 33.0, 40.0, 40.0, 39.2, 31.9, 0.0, 35.5, 36.4, 26.9, 38.3, 37.7, 34.3, 41.6, 43.3, 39.6, 44.2, 33.6, 36.0, 44.0, 28.0, 36.0, 36.0, 36.0, 40.7, 39.6, 32.4, 42.8, 38.2, 36.0, 43.0, 34.4, 35.5, 36.3, 28.0, 36.4, 44.1, 35.5, 36.7, 38.7, 34.7, 43.5, 29.5, 29.5, 36.3, 34.5, 37.6, 37.4, 32.7, 35.6, 31.0, 34.7, 31.1, 31.8, 36.3, 32.1, 36.3, 38.7, 33.4, 36.3, 36.0, 32.1, 32.1, 32.1, 55.2, 36.3, 36.4, 43.2, 46.5, 36.5, 40.3, 38.4, 34.9, 34.9, 38.0, 31.6, 34.9, 31.6, 41.5, 48.2, 35.3, 34.6, 0.0, 43.5, 41.9, 31.6, 44.0, 38.2, 30.7, 30.4, 38.1, 41.5, 39.1, 39.1, 39.4, 31.4, 33.5, 31.6, 28.7, 34.2, 33.6, 33.6, 33.6, 33.6, 37.4, 39.5, 36.5, 34.0, 41.2, 43.5, 35.5, 40.6, 40.6, 32.9, 38.6, 39.1, 32.1, 31.9, 43.7, 32.1, 38.8, 35.2, 42.4, 44.9, 34.9, 28.8, 34.5, 34.4, 34.4, 33.9, 38.0, 35.8, 32.8, 35.0, 33.6, 34.9, 36.1, 34.3, 37.1, 43.5, 43.0, 40.1, 39.4, 40.4, 37.5, 35.7, 32.4, 37.1, 35.1, 34.3, 34.3, 34.3, 36.9, 41.5, 26.7, 26.1, 35.8, 31.2, 41.7, 34.6, 36.5, 34.6, 34.6, 38.0, 36.9, 37.4, 38.8, 38.8, 33.8, 41.8, 43.7, 30.3, 43.4, 40.7, 38.5, 38.5, 30.6, 30.6, 48.4, 30.2, 41.0, 41.0, 34.4, 34.4, 34.4, 34.3, 34.3, 31.9, 0.0, 33.5, 36.4, 44.5, 40.9, 27.2, 34.4, 38.7, 42.3, 33.5, 35.6, 33.0, 41.6, 34.1, 39.9, 39.9, 34.3, 34.3, 34.3, 44.0, 36.0, 35.1, 32.4, 32.2, 43.0, 0.0, 35.5, 38.6, 42.9, 35.4, 34.7, 43.5, 36.3, 36.6, 30.1, 36.1, 37.1, 40.2, 37.8, 35.6, 31.0, 37.2, 31.1, 36.8, 35.2, 37.0, 38.9, 33.9, 41.2, 55.2, 36.3, 47.0, 31.8, 47.5, 37.8, 40.5, 37.0, 48.2, 36.7, 32.6, 37.4, 32.2, 30.7, 30.7, 38.2, 34.3, 30.7, 36.8, 30.4, 31.6, 41.1, 35.8, 39.1, 39.1, 38.7, 31.6, 42.8, 31.6, 28.7, 28.7, 34.2, 39.0, 36.6, 39.5, 39.5, 35.5, 32.0, 32.0, 38.2, 36.7, 36.1, 34.2, 31.9, 32.1, 37.2, 38.2, 36.7, 40.2, 36.2, 31.6, 39.0, 31.6, 28.8, 43.8, 34.3, 32.3, 33.9, 36.4, 36.4, 36.4, 32.2, 43.9, 36.1, 39.1, 36.0, 42.5, 42.5, 36.5, 36.5, 34.9, 34.6, 0.0, 33.7, 44.1, 44.1, 44.1, 43.5, 47.7, 40.4, 32.9, 36.1, 37.1, 37.1, 37.1, 37.5, 38.6, 36.9, 32.1, 32.8, 26.7, 26.1, 26.1, 40.9, 45.1, 40.9, 35.4, 34.6, 44.1, 48.4, 33.5, 38.2, 40.5, 37.5, 34.8, 35.4, 35.6, 33.0, 45.7, 39.5, 33.6, 38.3, 38.3, 38.3, 28.0, 37.7, 32.2, 31.8, 31.8, 37.8, 44.4, 34.3, 38.6, 31.6, 36.7, 38.4, 41.4, 43.5, 40.7, 40.2, 33.9, 36.1, 40.2, 37.4, 35.1, 35.6, 51.0, 33.4, 30.7, 30.7, 30.7, 33.5, 35.0, 39.8, 42.8, 37.0, 71.1, 36.8, 35.4, 36.3, 33.9, 31.0, 36.3, 34.3, 32.6, 47.5, 40.5, 35.9, 34.9, 40.5, 31.6, 41.9, 46.9, 45.3, 34.6, 0.0, 46.8, 37.4, 34.6, 34.6, 29.8, 30.7, 50.5, 35.7, 33.0, 35.5, 39.1, 39.6, 36.3, 38.7, 39.4, 36.9, 39.0, 33.5, 39.9, 28.7, 43.3, 37.4, 36.6, 45.8, 36.5, 36.5, 35.5, 29.7, 37.1, 31.7, 39.1, 35.2, 32.1, 23.1, 29.0, 32.2, 36.2, 38.8, 37.2, 35.9, 33.9, 38.1, 37.7, 33.0, 32.8, 39.1, 39.3, 35.0, 44.4, 36.8, 34.6, 35.6, 35.7, 44.1, 43.0, 33.4, 35.8, 39.4, 40.4, 35.4, 37.1, 37.5, 43.8, 35.1, 36.9, 37.6, 32.8, 36.3, 26.1, 31.2, 36.8, 36.8, 35.7, 39.8, 39.6, 37.4, 31.5, 43.4, 43.4, 36.3, 30.3, 39.7, 48.4, 30.2, 40.0, 41.7, 41.7, 38.2, 42.2, 35.7, 33.0, 33.5, 34.3, 34.4, 33.6, 33.6, 35.6, 44.0, 37.7, 35.1, 36.5, 45.2, 36.0, 50.5, 35.5, 42.9, 34.7, 38.2, 34.5, 30.1, 30.1, 37.4, 33.9, 37.1, 49.1, 37.2, 42.5, 31.8, 36.3, 36.3, 37.9, 35.4, 30.7, 33.5, 33.5, 35.0, 38.9, 36.8, 36.8, 33.4, 31.0, 31.0, 55.2, 47.0, 31.8, 47.5, 42.8, 30.9, 34.4, 34.4, 34.9, 33.9, 37.0, 24.9, 36.7, 36.7, 32.6, 37.4, 36.6, 46.8, 34.6, 34.6, 36.3, 29.8, 29.8, 45.2, 45.4, 28.8, 28.8, 41.2, 38.1, 40.1, 39.1, 45.1, 36.3, 38.7, 38.7, 31.4, 38.7, 39.9, 43.3, 33.6, 56.6, 36.5, 45.8, 40.1, 36.5, 36.5, 41.6, 35.8, 35.5, 36.0, 37.8, 36.7, 32.9, 37.8, 41.9, 35.0, 35.2, 31.9, 29.0, 35.2, 44.9, 35.9, 36.5, 47.1, 34.1, 36.4, 38.1, 32.2, 38.0, 35.0, 35.0, 35.0, 37.6, 37.6, 32.8, 32.8, 35.9, 46.9, 34.2, 34.3, 36.8, 37.0, 38.5, 35.6, 35.6, 39.0, 33.6, 32.9, 38.6, 32.4, 41.2, 37.1, 37.9, 37.2, 34.3, 40.6, 30.1, 30.1, 31.1, 29.9, 47.5, 26.7, 26.1, 31.2, 34.6, 37.8, 47.0, 39.8, 47.0, 38.7, 39.6, 35.9, 38.8, 32.4, 33.0, 41.6, 41.5, 30.6, 35.9, 30.6, 47.5, 34.4, 34.4, 36.4, 32.0, 33.5, 41.7, 38.2, 48.6, 38.3, 38.3, 38.3, 34.4, 35.6, 28.9, 44.2, 33.6, 38.3, 38.3, 38.3, 34.8, 44.0, 44.0, 36.0, 40.7, 45.3, 34.1, 40.0, 40.0, 34.4, 43.0, 39.1, 29.4, 29.4, 29.5, 37.1, 38.0, 37.1, 35.5, 33.1, 35.2, 35.1, 49.1, 35.6, 41.1, 34.6, 31.8, 31.8, 31.8, 33.4, 33.4, 37.1, 35.4, 37.9, 35.0, 71.1, 35.4, 36.0, 33.9, 36.3, 36.7, 33.5, 36.3, 39.4, 36.9, 32.5, 31.6, 48.2, 35.3, 33.1, 36.7, 32.6, 30.4, 32.6, 31.9, 35.4, 34.0, 33.0, 39.1, 38.7, 38.7, 31.6, 31.4, 31.4, 31.6, 56.9, 34.2, 37.4, 37.4, 37.4, 36.5, 35.5, 42.4, 35.5, 35.5, 37.8, 37.8, 36.1, 31.7, 38.6, 39.1, 42.5, 42.5, 31.9, 43.7, 44.9, 35.9, 31.6, 31.6, 35.9, 34.6, 32.3, 34.4, 47.1, 33.8, 32.2, 35.8, 32.8, 34.9, 39.1, 46.9, 39.3, 35.5, 35.0, 36.5, 36.5, 36.8, 36.8, 36.8, 36.8, 37.1, 37.0, 0.0, 43.5, 33.6, 39.4, 47.7, 35.4, 30.3, 44.5, 44.5, 37.1, 35.8, 29.9, 47.5, 35.8, 38.0, 36.3, 26.7, 39.2, 26.7, 26.7, 36.5, 36.8, 36.8, 41.8, 47.0, 39.7, 37.9, 45.1, 34.0, 30.3, 45.5, 36.3, 35.4, 38.3, 41.0, 41.0, 40.0, 51.4, 40.5, 38.7, 34.8, 35.6, 31.8, 31.8, 33.6, 34.3, 44.0, 34.3, 36.0, 36.0, 36.0, 37.7, 34.5, 32.3, 32.3, 37.8, 28.0, 0.0, 44.9, 34.3, 44.4, 39.1, 37.9, 39.5, 32.3, 33.4, 46.5, 36.1, 33.9, 35.6, 51.1, 31.3, 38.8, 47.4, 47.4, 31.8, 31.1, 34.6, 31.8, 31.8, 52.0, 33.4, 45.0, 32.1, 33.5, 33.5, 39.8, 33.0, 35.4, 41.2, 36.3, 36.3, 36.5, 42.6, 39.6, 39.6, 36.5, 40.3, 47.5, 34.5, 38.4, 40.5, 36.0, 40.8, 40.5, 34.4, 34.4, 33.9, 35.6, 24.9, 36.0, 32.6, 37.3, 37.1, 44.0, 32.2, 29.8, 45.4, 36.8, 36.3, 41.2, 35.2, 35.7, 35.4, 31.9, 39.1, 39.1, 39.1, 38.1, 39.0, 31.1, 34.2, 34.2, 28.7, 37.4, 56.6, 40.1, 45.8, 34.0, 34.0, 29.7, 39.4, 37.1, 39.5, 32.9, 36.1, 42.6, 42.5, 42.5, 23.1, 31.9, 32.1, 40.0, 37.2, 36.5, 44.4, 36.5, 36.5, 36.5, 43.8, 33.9, 33.9, 33.8, 36.4, 37.6, 38.0, 32.8, 39.3, 35.5, 32.5, 33.6, 36.5, 36.5, 36.8, 37.0, 44.1, 37.0, 35.4, 33.4, 39.2, 41.7, 30.3, 44.5, 32.4, 43.8, 36.0, 34.3, 31.1, 29.9, 32.8, 32.8, 34.6, 34.6, 34.6, 35.6, 35.6, 35.9, 39.1, 33.4, 41.5, 41.5, 43.7, 31.5, 30.3, 34.0, 40.7, 40.2, 39.7, 39.3, 34.3, 31.9, 0.0, 0.0, 35.5, 35.5, 38.2, 35.7, 32.2, 41.6, 42.3, 35.6, 35.6, 35.6, 31.8, 45.7, 28.9, 39.5, 33.6, 33.6, 39.9, 39.9, 36.4, 36.0, 36.0, 36.0, 39.6, 43.0, 38.2, 37.8, 48.0, 44.1, 38.6, 41.0, 36.7, 39.1, 42.1, 37.9, 36.3, 30.1, 37.6, 33.9, 37.4, 35.5, 30.2, 37.6, 51.1, 51.1, 51.1, 33.2, 47.4, 31.8, 31.1, 30.7, 35.0, 23.7, 48.9, 37.0, 35.4, 37.0, 71.1, 33.0, 35.4, 33.0, 31.0, 32.0, 37.4, 36.3, 35.7, 35.7, 31.8, 34.5, 32.4, 32.4, 34.4, 37.0, 38.0, 34.9, 31.6, 30.4, 24.9, 39.2, 34.6, 37.1, 36.0, 38.9, 50.2, 46.8, 41.9, 37.1, 32.2, 38.2, 38.2, 36.3, 31.9, 41.2, 35.7, 45.1, 36.7, 33.6, 39.5, 28.1, 42.4, 35.5, 32.9, 36.1, 35.4, 46.1, 39.1, 42.6, 42.5, 23.1, 31.9, 35.2, 35.2, 41.7, 38.2, 28.4, 43.7, 31.6, 34.1, 36.5, 32.3, 47.1, 36.7, 38.1, 33.0, 29.3, 39.3, 39.3, 35.5, 35.5, 35.0, 37.0, 34.3, 35.6, 44.1, 37.4, 37.4, 49.4, 40.4, 36.1, 43.8, 37.5, 37.9, 36.9, 36.9, 29.9, 32.5, 35.8, 32.1, 41.0, 26.7, 40.9, 36.8, 38.8, 42.3, 34.6, 41.6, 42.4, 41.5, 41.5, 41.5, 37.9, 34.0, 40.7, 36.6, 40.0, 30.2, 38.3, 39.2, 34.3, 0.0, 35.5, 38.2, 38.8, 35.6, 37.5, 27.2, 40.6, 33.1, 38.7, 33.5, 31.8, 39.8, 39.5, 34.8, 44.0, 44.0, 36.0, 32.4, 32.4, 38.2, 37.8, 34.1, 35.5, 28.0, 28.0, 36.3, 50.5, 40.0, 41.4, 37.9, 38.7, 43.5, 36.6, 34.5, 49.3, 32.7, 35.6, 49.1, 35.6, 32.6, 51.1, 31.3, 34.6, 37.2, 31.8, 35.2, 33.4, 33.5, 37.0, 37.0, 33.2, 36.8, 35.4, 33.9, 37.4, 37.4, 33.5, 38.7, 33.4, 42.6, 43.2, 42.8, 39.4, 34.9, 32.5, 32.5, 32.6, 37.3, 37.1, 50.2, 31.6, 34.3, 32.6, 36.3, 35.2, 41.5, 35.7, 31.9, 41.5, 39.1, 39.1, 39.1, 45.1, 40.1, 31.4, 40.3, 36.9, 38.0, 37.8, 37.8, 34.0, 34.1, 34.1, 33.6, 56.6, 40.1, 34.0, 35.8, 35.5, 32.9, 41.9, 38.6, 34.2, 34.2, 39.1, 35.2, 35.2, 35.2, 32.1, 42.5, 32.0, 36.7, 40.9, 31.6, 34.1, 28.8, 34.6, 29.4, 42.1, 34.3, 32.2, 32.2, 35.8, 35.2, 34.2, 35.5, 32.5, 32.5, 32.5, 38.0, 36.1, 37.0, 37.1, 34.3, 35.6, 35.6, 44.1, 43.5, 41.7, 49.4, 41.7, 39.2, 46.9, 38.7, 35.1, 46.0, 36.9, 41.5, 29.9, 49.3, 47.5, 26.7, 26.7, 40.9, 31.2, 34.6, 39.5, 39.6, 34.6, 32.4, 39.7, 39.7, 36.5, 38.8, 44.3, 42.8, 33.8, 41.5, 43.7, 30.3, 30.6, 33.0, 27.9, 41.0, 40.0, 33.5, 40.3, 36.4, 40.9, 51.4, 38.3, 35.0, 34.4, 43.3, 33.5, 28.9, 39.7, 44.6, 34.1, 36.0, 34.3, 34.3, 34.3, 34.3, 44.0, 36.0, 40.7, 35.1, 32.4, 32.4, 36.5, 36.5, 42.8, 38.2, 34.1, 38.1, 35.5, 35.5, 34.3, 39.1, 38.0, 39.1, 46.3, 42.1, 42.1, 38.8, 42.8, 37.9, 37.9, 38.7, 29.5, 36.3, 36.6, 34.5, 34.5, 34.5, 33.9, 40.2, 37.8, 35.5, 35.5, 32.6, 32.6, 47.4, 34.7, 36.8, 36.8, 42.9, 35.2, 30.7, 35.0, 37.0, 42.8, 37.0, 33.0, 36.8, 36.1, 55.2, 42.2, 28.5, 43.2, 42.6, 46.5, 38.4, 38.3, 40.5, 39.2, 38.0, 34.9, 46.9, 46.9, 35.3, 32.6, 37.3, 34.6, 43.5, 43.5, 37.4, 37.4, 34.6, 34.6, 38.2, 32.6, 34.3, 35.2, 38.7, 36.9, 56.9, 34.2, 39.0, 34.2, 41.9, 40.1, 45.8, 43.4, 43.5, 43.5, 35.5, 32.0, 37.8, 40.0, 42.0, 37.8, 34.2, 23.1, 31.9, 38.8, 35.9, 35.9, 35.9, 41.4, 35.9, 32.3, 32.3, 34.4, 36.4, 38.1, 37.7, 43.9, 37.6, 38.2, 29.3, 36.1, 39.1, 31.4, 36.0, 39.3, 38.0, 35.0, 35.6, 35.6, 44.1, 49.4, 39.2, 30.3, 45.2, 36.9, 36.0, 30.1, 37.6, 37.6, 37.6, 26.1, 26.1, 35.2, 45.1, 35.0, 33.6, 39.7, 43.1, 43.1, 37.9, 30.3, 31.9, 30.6, 39.3, 39.3, 40.9, 36.3, 39.2, 33.5, 38.2, 42.2, 35.7, 40.6, 31.8, 39.6, 33.6, 34.3, 34.3, 36.0, 39.6, 37.6, 42.8, 32.3, 32.3, 35.0, 35.5, 28.0, 42.7, 0.0, 42.1, 42.8, 37.9, 29.5, 29.5, 37.4, 30.2, 35.6, 34.7, 35.9, 35.9, 36.8, 51.0, 42.9, 33.4, 30.7, 30.7, 23.7, 48.9, 37.0, 71.1, 71.1, 36.3, 36.8, 41.2, 32.0, 42.2, 33.5, 36.3, 34.6, 34.3, 34.3, 33.4, 46.5, 39.6, 31.8, 39.4, 40.5, 34.4, 34.4, 38.3, 38.3, 30.9, 36.6, 45.3, 39.2, 32.1, 36.7, 32.6, 37.1, 46.8, 50.2, 46.8, 43.5, 45.2, 32.6, 34.3, 34.8, 36.8, 34.0, 39.1, 36.3, 38.1, 39.4, 31.1, 31.1, 31.4, 31.4, 31.4, 34.2, 37.4, 34.2, 39.0, 43.3, 33.6, 56.6, 41.0, 40.1, 44.1, 35.2, 35.8, 35.5, 37.8, 39.1, 36.7, 36.1, 32.9, 34.2, 38.6, 39.1, 36.9, 36.9, 32.0, 55.6, 36.5, 36.2, 35.9, 35.9, 34.2, 34.1, 32.2, 37.6, 37.6, 29.3, 36.1, 35.2, 39.3, 39.3, 35.5, 45.9, 31.8, 35.0, 30.7, 33.6, 36.8, 41.1, 35.7, 42.4, 43.4, 30.3, 32.4, 37.1, 37.5, 36.8, 37.9, 36.0, 36.9, 41.5, 41.5, 32.5, 32.5, 47.5, 43.2, 35.8, 39.2, 37.1, 35.2, 37.3, 36.8, 37.5, 51.8, 36.2, 33.6, 36.5, 41.5, 36.3, 40.0, 34.3, 27.9, 0.0, 35.5, 38.2, 42.0, 27.2, 27.2, 35.0, 38.7, 41.6, 34.1, 34.8, 39.9, 35.6, 36.0, 43.0, 37.6, 42.8, 38.2, 38.2, 31.8, 34.1, 34.4, 36.4, 42.7, 44.1, 35.5, 44.4, 43.4, 38.6, 42.9, 42.8, 41.3, 38.2, 29.5, 30.1, 32.7, 32.7, 32.7, 30.2, 35.6, 31.0, 33.2, 40.1, 51.1, 23.7, 23.7, 40.0, 39.8, 37.0, 37.0, 42.3, 33.9, 37.4, 42.2, 38.7, 36.3, 34.3, 32.6, 46.5, 39.6, 32.6, 40.3, 37.2, 47.5, 40.5, 38.3, 36.3, 46.9, 28.9, 28.9, 36.7, 32.6, 37.3, 37.4, 46.8, 43.5, 38.1, 44.0, 38.2, 45.4, 45.4, 28.8, 41.2, 35.4, 31.9, 41.5, 35.5, 45.1, 40.1, 34.4, 33.5, 31.6, 44.8, 38.0, 28.7, 34.2, 33.6, 39.5, 35.6, 41.0, 40.1, 40.1, 36.5, 41.6, 41.2, 35.5, 35.2, 31.5, 43.1, 32.9, 32.9, 32.9, 34.2, 39.1, 35.2, 35.2, 35.2, 32.1, 32.0, 29.0, 35.2, 39.1, 40.9, 35.9, 31.6, 35.8, 28.8, 34.6, 32.3, 33.8, 36.4, 33.0, 35.0, 38.2, 42.9, 39.3, 39.3, 32.5, 36.8, 37.0, 0.0, 33.4, 37.0, 40.1, 43.6, 41.7, 40.4, 41.2, 30.3, 37.1, 35.1, 34.3, 37.6, 26.1, 26.1, 37.8, 37.5, 39.8, 37.7, 41.8, 42.3, 42.3, 33.0, 39.7, 36.9, 39.4, 43.4, 31.5, 40.7, 30.6, 36.6, 37.2, 40.9, 38.3, 39.4, 41.0, 34.4, 36.4, 27.9, 41.7, 38.8, 42.2, 33.5, 40.5, 38.3, 27.2, 34.4, 34.8, 35.6, 33.0, 31.8, 31.8, 45.7, 44.6, 38.3, 34.8, 39.9, 44.0, 36.0, 36.0, 40.9, 43.0, 42.8, 41.0, 38.2, 31.8, 35.5, 0.0, 44.1, 44.1, 35.5, 34.3, 43.4, 33.9, 35.4, 37.9, 29.4, 39.5, 29.5, 46.5, 45.0, 40.2, 36.1, 31.0, 34.6, 42.9, 52.0, 42.9, 36.3, 36.3, 30.7, 33.5, 35.4, 33.4, 41.2, 36.7, 36.3, 36.3, 32.6, 31.8, 38.4, 40.8, 31.6, 32.5, 24.9, 30.4, 41.9, 45.3, 46.6, 32.6, 50.2, 43.5, 37.4, 31.6, 45.2, 29.8, 45.2, 45.4, 30.4, 47.2, 33.0, 35.8, 39.5, 38.7, 34.0, 34.4, 36.9, 38.0, 40.3, 56.9, 34.0, 34.0, 33.6, 36.6, 56.6, 36.4, 31.7, 36.5, 36.7, 36.0, 35.5, 29.7, 41.6, 29.7, 35.3, 36.7, 36.7, 32.9, 31.7, 42.6, 37.1, 34.2, 42.5, 35.6, 23.1, 23.1, 41.0, 32.1, 35.2, 35.9, 44.4, 34.5, 32.3, 39.0, 36.4, 35.0, 33.0, 37.6, 37.6, 29.3, 36.0, 35.5, 32.5, 36.5, 36.9, 45.4, 0.0, 0.0, 34.6, 37.0, 35.6, 50.1, 36.1, 37.5, 38.8, 41.0, 37.9, 36.0, 38.6, 29.9, 32.5, 38.8, 26.1, 26.7, 26.1, 26.1, 26.1, 34.6, 34.6, 51.8, 51.8, 33.6, 37.4, 39.6, 39.6, 34.6, 44.2, 39.7, 39.7, 36.5, 41.6, 46.5, 33.8, 37.9, 37.9, 34.0, 43.4, 30.3, 38.5, 35.8, 33.6, 39.7, 42.2, 36.3, 48.4, 41.0, 37.4, 27.9, 38.2, 36.4, 32.2, 27.3, 40.5, 37.5, 41.6, 34.4, 34.8, 28.9, 42.6, 33.6, 38.3, 28.0, 34.3, 34.9, 37.8, 35.0, 34.4, 36.0, 34.9, 28.0, 0.0, 0.0, 38.6, 43.4, 35.4, 41.4, 42.8, 37.9, 37.9, 29.5, 36.3, 34.5, 30.1, 36.1, 30.2, 42.5, 51.1, 31.3, 37.2, 47.8, 33.4, 35.4, 36.3, 41.2, 33.5, 48.9, 35.4, 36.2, 39.4, 42.3, 37.6, 37.6, 36.1, 33.5, 36.3, 36.4, 42.6, 42.6, 42.6, 32.6, 36.5, 47.0, 31.8, 47.0, 37.2, 34.9, 40.5, 34.9, 36.3, 48.2, 36.6, 41.9, 41.9, 37.1, 32.2, 37.0, 45.2, 45.4, 30.4, 36.3, 47.2, 34.0, 31.9, 31.9, 39.1, 39.1, 39.1, 36.3, 40.1, 39.4, 33.5, 28.7, 28.7, 34.2, 39.9, 39.9, 39.5, 35.5, 44.5, 34.0, 34.0, 35.8, 35.5, 35.5, 35.2, 41.3, 32.9, 36.1, 42.6, 34.2, 34.2, 34.2, 35.2, 35.0, 42.5, 45.7, 31.9, 43.7, 32.1, 37.2, 38.2, 38.2, 44.9, 35.9, 46.3, 35.8, 34.9, 42.1, 35.8, 32.2, 35.8, 35.0, 35.0, 32.8, 29.3, 34.9, 34.9, 35.3, 36.5, 36.1, 34.3, 34.6, 37.1, 34.3, 35.6, 44.1, 39.0, 40.9, 39.4, 40.4, 36.1, 32.4, 36.1, 35.1, 35.1, 40.6, 47.5, 40.9, 40.9, 36.8, 37.5, 37.5, 37.8, 37.4, 41.8, 39.6, 34.6, 42.3, 35.0, 32.4, 39.7, 44.3, 41.5, 41.8, 31.5, 36.3, 36.3, 35.9, 38.3, 48.4, 33.0, 41.0, 41.0, 29.8, 33.5, 40.3, 33.5, 32.2, 42.0, 34.3, 33.0, 35.6, 31.8, 33.6, 38.3, 34.8, 39.9, 44.0, 35.1, 35.1, 38.2, 45.3, 37.8, 36.0, 28.0, 41.0, 38.4, 38.4, 46.3, 46.3, 42.9, 37.9, 39.5, 39.4, 40.2, 31.0, 37.6, 31.1, 33.4, 36.3, 37.9, 30.7, 32.1, 39.8, 37.0, 42.1, 36.0, 41.2, 42.2, 36.3, 36.4, 36.4, 28.5, 39.4, 32.4, 40.5, 34.4, 34.4, 37.8, 33.9, 31.6, 36.0, 36.0, 33.1, 36.6, 38.9, 43.5, 43.5, 31.6, 34.6, 44.0, 45.4, 30.7, 31.9, 34.0, 33.0, 41.5, 45.1, 31.1, 31.4, 34.0, 38.7, 28.7, 42.7, 33.6, 33.6, 37.4, 39.5, 36.5, 36.0, 34.0, 34.4, 29.7, 37.8, 31.7, 35.4, 36.8, 34.2, 35.2, 35.0, 35.0, 35.6, 31.9, 35.2, 40.0, 41.4, 35.9, 41.2, 36.5, 34.6, 34.4, 32.3, 34.4, 38.1, 32.8, 31.9, 35.9, 42.5, 34.2, 38.0, 38.0, 45.9, 44.4, 36.9, 36.8, 34.3, 37.0, 39.0, 40.4, 35.6, 38.1, 40.4, 37.1, 35.1, 33.4, 35.8, 34.0, 31.1, 47.5, 32.1, 38.8, 35.8, 32.8, 34.6, 47.0, 35.6, 33.6, 35.9, 35.0, 42.8, 41.5, 45.1, 42.8, 38.5, 40.7, 37.2, 38.4, 40.0, 40.0, 34.4, 34.3, 36.4, 29.7, 0.0, 38.2, 33.5, 44.5, 44.5, 38.7, 38.7, 43.3, 46.2, 31.8, 39.5, 34.3, 34.3, 44.0, 44.0, 36.0, 40.7, 40.8, 32.2, 32.2, 34.1, 46.3, 28.0, 0.0, 44.1, 43.4, 39.1, 33.9, 42.9, 37.9, 39.5, 41.3, 29.5, 36.3, 34.5, 34.5, 37.4, 33.1, 35.2, 35.1, 35.6, 33.2, 32.6, 32.6, 31.0, 34.6, 35.9, 36.8, 31.8, 42.9, 52.0, 35.4, 35.4, 35.3, 35.4, 36.8, 35.4, 55.2, 39.6, 40.8, 36.5, 34.5, 34.4, 34.9, 36.0, 34.4, 38.3, 38.3, 34.9, 32.5, 36.3, 36.6, 24.9, 46.9, 32.6, 37.1, 31.6, 34.6, 37.0, 37.0, 30.7, 38.0, 38.0, 34.8, 41.5, 31.9, 31.9, 41.5, 35.5, 39.1, 34.4, 40.1, 33.5, 38.0, 37.8, 34.0, 34.2, 38.7, 37.4, 28.7, 36.6, 32.4, 40.1, 34.0, 35.8, 35.8, 44.5, 41.2, 35.5, 29.7, 31.5, 39.7, 37.8, 37.8, 42.6, 38.6, 34.2, 39.1, 31.9, 31.9, 31.9, 29.0, 36.7, 44.9, 36.2, 35.9, 35.9, 35.9, 35.9, 35.9, 35.9]}, "idade_stats": {"euploide": {"media": 38.3, "dp": 5.0, "n": 5390}, "aneuploide": {"media": 39.5, "dp": 4.2, "n": 8403}, "nao_classif": {"media": 36.8, "dp": 6.0, "n": 2752}}, "diagnosticos": [{"diag": "Outros", "total": 3044, "euploide": 1003, "aneuploide": 1547}, {"diag": "Endometriose", "total": 2716, "euploide": 849, "aneuploide": 1392}, {"diag": "Insuficiência ovariana", "total": 2514, "euploide": 796, "aneuploide": 1357}, {"diag": "Fator masculino", "total": 2173, "euploide": 689, "aneuploide": 1152}, {"diag": "Fator feminino anatômico", "total": 1593, "euploide": 522, "aneuploide": 803}, {"diag": "Inexplicado", "total": 1087, "euploide": 369, "aneuploide": 559}, {"diag": "Fator feminino endócrino", "total": 481, "euploide": 171, "aneuploide": 150}]};
+const D = {"total": 16736, "n_eup": 5460, "n_ane": 8498, "n_nao": 2778, "pct_eup": 32.6, "pct_ane": 50.8, "pct_nao": 16.6, "motivos": {"Classificado como Aneuploide": 8498, "Classificado como Euploide": 5460, "Não analisado": 1506, "Todas as colunas vazias": 1203, "Não classificado (revisar)": 69}, "unidades": [{"unidade": "Ibirapuera", "total": 8494, "eup": 2507, "ane": 4262, "nao": 1725}, {"unidade": "Vila Mariana", "total": 5325, "eup": 1979, "ane": 2647, "nao": 699}, {"unidade": "Brasilia", "total": 1662, "eup": 508, "ane": 889, "nao": 265}, {"unidade": "Belo Horizonte", "total": 1255, "eup": 466, "ane": 700, "nao": 89}], "age_bins_lbl": [0.0, 5.1, 10.2, 15.2, 20.3, 25.4, 30.5, 35.6, 40.6, 45.7, 50.8, 55.9, 61.0, 66.0], "age_bins_eup": [19, 0, 0, 6, 20, 181, 1067, 2613, 1220, 227, 32, 2, 0, 3], "age_bins_ane": [24, 0, 0, 0, 2, 6, 53, 279, 1235, 3617, 2829, 275, 78, 5], "age_desc": {"todos": {"n": 16545, "media": 38.67, "dp": 4.95, "med": 38.97, "mn": 0.0, "mx": 71.13}, "euploide": {"n": 5390, "media": 38.26, "dp": 5.03, "med": 38.35, "mn": 0.0, "mx": 71.13}, "aneuploide": {"n": 8403, "media": 39.55, "dp": 4.24, "med": 39.85, "mn": 0.0, "mx": 57.25}}, "bmi_bins_lbl": [0.0, 18591.8, 37183.6, 55775.4, 74367.2, 92959.0, 111550.8, 130142.6, 148734.4, 167326.2, 185918.0, 204509.8], "bmi_bins_eup": [3644, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3], "bmi_bins_ane": [5772, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2], "bmi_desc": {"todos": {"n": 11366, "media": 70.4, "dp": 2986.32, "med": 23.01, "mn": 0.0, "mx": 223101.58}, "euploide": {"n": 3648, "media": 44.32, "dp": 707.87, "med": 22.99, "mn": 0.0, "mx": 24676.08}, "aneuploide": {"n": 5774, "media": 102.63, "dp": 4151.66, "med": 23.01, "mn": 0.0, "mx": 223101.58}}, "diag_cross": [{"cat": "Outros", "total": 3044, "eup": 1003, "ane": 1547}, {"cat": "Endometriose", "total": 2716, "eup": 849, "ane": 1392}, {"cat": "Insuficiência ovariana", "total": 2514, "eup": 796, "ane": 1357}, {"cat": "Fator masculino", "total": 2173, "eup": 689, "ane": 1152}, {"cat": "Fator feminino anatômico", "total": 1593, "eup": 522, "ane": 803}, {"cat": "Inexplicado", "total": 1087, "eup": 369, "ane": 559}, {"cat": "Fator feminino endócrino", "total": 481, "eup": 171, "ane": 150}], "prev_vc": {"0": 13550, "1": 1751, "2": 726, "3": 307, "4": 207, "5": 83, "6": 52, "7": 36, "9": 12, "8": 7, "12": 2, "15": 2, "13": 1}, "prev_eup_vc": {"0": 4431, "1": 579, "2": 233, "3": 97, "4": 57, "5": 21, "6": 20, "7": 14, "9": 4, "8": 2, "12": 1, "15": 1}, "prev_ane_vc": {"0": 6796, "1": 936, "2": 394, "3": 173, "4": 99, "5": 48, "6": 22, "7": 20, "8": 5, "9": 2, "15": 1, "13": 1, "12": 1}, "asp_bins_lbl": [1.0, 8.3, 15.7, 23.0, 30.3, 37.7, 45.0, 52.3, 59.7, 67.0, 74.3, 81.7], "asp_bins_eup": [1416, 2145, 929, 464, 152, 75, 22, 5, 0, 3, 3, 4], "asp_bins_ane": [2872, 3119, 1411, 591, 142, 93, 16, 4, 0, 0, 1, 10], "asp_desc": {"todos": {"n": 16070, "media": 14.01, "dp": 9.0, "med": 12.0, "mn": 1.0, "mx": 89.0}, "euploide": {"n": 5218, "media": 13.88, "dp": 8.65, "med": 12.0, "mn": 1.0, "mx": 89.0}, "aneuploide": {"n": 8259, "media": 12.64, "dp": 8.07, "med": 11.0, "mn": 1.0, "mx": 89.0}}, "src_cross": [{"cat": "Homólogo", "total": 14807, "eup": 4585, "ane": 7945}, {"cat": "Heterólogo", "total": 1919, "eup": 872, "ane": 546}, {"cat": "Ambos", "total": 10, "eup": 3, "ane": 7}], "hist_cross": [{"cat": "Fresco", "total": 14111, "eup": 4397, "ane": 7433}, {"cat": "Descongelado", "total": 2607, "eup": 1054, "ane": 1059}], "morf_data": {"t2": {"eup_media": 26.22, "ane_media": 26.65, "eup_dp": 3.24, "ane_dp": 3.58, "eup_n": 5212, "ane_n": 7971}, "t3": {"eup_media": 36.97, "ane_media": 37.38, "eup_dp": 4.43, "ane_dp": 4.69, "eup_n": 5100, "ane_n": 7781}, "t4": {"eup_media": 38.54, "ane_media": 39.1, "eup_dp": 4.94, "ane_dp": 5.24, "eup_n": 5204, "ane_n": 7933}, "t5": {"eup_media": 49.88, "ane_media": 50.57, "eup_dp": 6.9, "ane_dp": 7.39, "eup_n": 5149, "ane_n": 7859}, "t8": {"eup_media": 58.55, "ane_media": 59.75, "eup_dp": 9.52, "ane_dp": 10.34, "eup_n": 5133, "ane_n": 7747}, "tB": {"eup_media": 106.59, "ane_media": 110.39, "eup_dp": 10.36, "ane_dp": 11.59, "eup_n": 4988, "ane_n": 7326}, "tEB": {"eup_media": 113.75, "ane_media": 118.78, "eup_dp": 10.43, "ane_dp": 12.73, "eup_n": 2300, "ane_n": 3012}, "tHB": {"eup_media": 117.54, "ane_media": 122.01, "eup_dp": 10.64, "ane_dp": 13.08, "eup_n": 1585, "ane_n": 1875}, "tM": {"eup_media": 90.23, "ane_media": 91.97, "eup_dp": 9.38, "ane_dp": 10.02, "eup_n": 1540, "ane_n": 2410}, "tPNa": {"eup_media": 7.34, "ane_media": 7.52, "eup_dp": 2.3, "ane_dp": 2.29, "eup_n": 1639, "ane_n": 2731}, "tPNf": {"eup_media": 23.8, "ane_media": 24.19, "eup_dp": 3.44, "ane_dp": 3.44, "eup_n": 5219, "ane_n": 7981}, "tSB": {"eup_media": 96.66, "ane_media": 99.19, "eup_dp": 9.01, "ane_dp": 9.8, "eup_n": 4995, "ane_n": 7365}, "tSC": {"eup_media": 79.89, "ane_media": 80.92, "eup_dp": 9.49, "ane_dp": 10.29, "eup_n": 1539, "ane_n": 2427}}, "morf_cols": ["t2", "t3", "t4", "t5", "t8", "tB", "tEB", "tHB", "tM", "tPNa", "tPNf", "tSB", "tSC"], "icm_cross": [{"cat": "A", "total": 8025, "eup": 3348, "ane": 3503}, {"cat": "B", "total": 5548, "eup": 1393, "ane": 3083}, {"cat": "C", "total": 1104, "eup": 208, "ane": 676}], "te_cross": [{"cat": "B", "total": 6183, "eup": 1743, "ane": 3254}, {"cat": "A", "total": 5766, "eup": 2775, "ane": 2266}, {"cat": "C", "total": 2723, "eup": 431, "ane": 1739}], "frag2_cross": [{"cat": "0-10%", "total": 4963, "eup": 1653, "ane": 2366}, {"cat": "10-20%", "total": 1798, "eup": 584, "ane": 855}, {"cat": "20-50%", "total": 378, "eup": 133, "ane": 173}, {"cat": "50-100%", "total": 14, "eup": 6, "ane": 7}], "mn2_cross": [{"cat": "Mono", "total": 3834, "eup": 1300, "ane": 1822}, {"cat": "Multi", "total": 2058, "eup": 678, "ane": 960}, {"cat": "Bi", "total": 1137, "eup": 358, "ane": 560}, {"cat": "Unknown", "total": 27, "eup": 9, "ane": 12}, {"cat": "Cluster", "total": 2, "eup": 0, "ane": 2}], "pn_cross": [{"cat": "2.0", "total": 16050, "eup": 5317, "ane": 8122}, {"cat": "3.0", "total": 139, "eup": 7, "ane": 92}, {"cat": "1.0", "total": 103, "eup": 21, "ane": 38}, {"cat": "0.0", "total": 60, "eup": 19, "ane": 19}, {"cat": "4.0", "total": 9, "eup": 1, "ane": 6}], "frag_desc": {"todos": {"n": 2727, "media": 28.65, "dp": 4.58, "med": 28.2, "mn": 19.5, "mx": 60.6}, "euploide": {"n": 929, "media": 28.67, "dp": 4.59, "med": 28.3, "mn": 19.6, "mx": 58.7}, "aneuploide": {"n": 1486, "media": 28.79, "dp": 4.57, "med": 28.4, "mn": 19.5, "mx": 60.6}}, "reexp_desc": {"todos": {"n": 102, "media": 2.44, "dp": 2.5, "med": 2.0, "mn": 1.0, "mx": 23.0}, "euploide": {"n": 25, "media": 1.68, "dp": 1.09, "med": 1.0, "mn": 1.0, "mx": 4.0}, "aneuploide": {"n": 64, "media": 2.66, "dp": 1.51, "med": 2.0, "mn": 1.0, "mx": 7.0}}};
+const C_EUP="#0f6e56",C_ANE="#993c1d",C_NAO="#888780",C_BLUE="#185fa5";
 
-// ── KPIs ─────────────────────────────────────────────────────────────────────
-document.getElementById("kpi-total").textContent   = D.total.toLocaleString("pt-BR");
-document.getElementById("kpi-eup").textContent     = D.n_eup.toLocaleString("pt-BR");
-document.getElementById("kpi-eup-pct").textContent = D.pct_eup + "% do total";
-document.getElementById("kpi-ane").textContent     = D.n_ane.toLocaleString("pt-BR");
-document.getElementById("kpi-ane-pct").textContent = D.pct_ane + "% do total";
-document.getElementById("kpi-nao").textContent     = D.n_nao.toLocaleString("pt-BR");
-document.getElementById("kpi-nao-pct").textContent = D.pct_nao + "% do total";
+document.getElementById("kv-tot").textContent=D.total.toLocaleString("pt-BR");
+document.getElementById("kv-eup").textContent=D.n_eup.toLocaleString("pt-BR");
+document.getElementById("ks-eup").textContent=D.pct_eup+"% do total";
+document.getElementById("kv-ane").textContent=D.n_ane.toLocaleString("pt-BR");
+document.getElementById("ks-ane").textContent=D.pct_ane+"% do total";
+document.getElementById("kv-nao").textContent=D.n_nao.toLocaleString("pt-BR");
+document.getElementById("ks-nao").textContent=D.pct_nao+"% do total";
 
-// Paleta
-const C_EUP = "#1d7a5f";
-const C_ANE = "#993c1d";
-const C_NAO = "#888780";
-const C_EUP_LT = "#9FE1CB";
-const C_ANE_LT = "#F5C4B3";
-const C_NAO_LT = "#D3D1C7";
-
-// ── DONUT ─────────────────────────────────────────────────────────────────────
-new Chart(document.getElementById("chart-donut"), {
-  type: "doughnut",
-  data: {
-    labels: ["Euploide", "Aneuploide", "Não classificado"],
-    datasets: [{ data: [D.n_eup, D.n_ane, D.n_nao],
-                  backgroundColor: [C_EUP, C_ANE, C_NAO],
-                  borderWidth: 2, borderColor: "#fff" }]
-  },
-  options: {
-    responsive: true, maintainAspectRatio: false,
-    cutout: "62%",
-    plugins: {
-      legend: { position: "right", labels: { boxWidth: 12, font: { size: 12 } } },
-      tooltip: { callbacks: {
-        label: ctx => ` ${ctx.label}: ${ctx.parsed.toLocaleString("pt-BR")} (${(ctx.parsed/D.total*100).toFixed(1)}%)`
-      } }
-    }
-  }
-});
-
-// ── MOTIVOS ───────────────────────────────────────────────────────────────────
-const motLabels = Object.keys(D.motivos);
-const motVals   = Object.values(D.motivos);
-const motColors = motLabels.map(l => {
-  if (l.includes("Euploide")) return C_EUP;
-  if (l.includes("Aneuploide")) return C_ANE;
-  return C_NAO;
-});
-new Chart(document.getElementById("chart-motivos"), {
-  type: "bar",
-  data: {
-    labels: motLabels,
-    datasets: [{ label: "Embriões", data: motVals,
-                  backgroundColor: motColors, borderRadius: 4 }]
-  },
-  options: {
-    indexAxis: "y",
-    responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { display: false },
-                tooltip: { callbacks: {
-                  label: ctx => ` ${ctx.parsed.x.toLocaleString("pt-BR")} embriões`
-                } } },
-    scales: { x: { grid: { color: "#f0ede6" } },
-               y: { ticks: { font: { size: 12 } } } }
-  }
-});
-
-// ── POR UNIDADE ───────────────────────────────────────────────────────────────
-const unidLabels = D.unidades.map(u => u.unidade);
-new Chart(document.getElementById("chart-unidade"), {
-  type: "bar",
-  data: {
-    labels: unidLabels,
-    datasets: [
-      { label: "Euploide",        data: D.unidades.map(u => u.euploide),    backgroundColor: C_EUP, borderRadius: 3 },
-      { label: "Aneuploide",      data: D.unidades.map(u => u.aneuploide),  backgroundColor: C_ANE, borderRadius: 3 },
-      { label: "Não classificado",data: D.unidades.map(u => u.nao_classif), backgroundColor: C_NAO, borderRadius: 3 }
-    ]
-  },
-  options: {
-    responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { labels: { boxWidth: 12, font: { size: 12 } } } },
-    scales: {
-      x: { stacked: false, grid: { display: false } },
-      y: { stacked: false, grid: { color: "#f0ede6" } }
-    }
-  }
-});
-
-// ── IDADES ────────────────────────────────────────────────────────────────────
-function histBins(data, min, max, n) {
-  const step = (max - min) / n;
-  const bins = Array.from({length: n}, (_, i) => ({
-    x: +(min + i * step).toFixed(1), count: 0
-  }));
-  data.forEach(v => {
-    const i = Math.min(Math.floor((v - min) / step), n - 1);
-    if (i >= 0) bins[i].count++;
-  });
-  return bins;
+function bOpts(ix="x",stacked=false){
+  return{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{labels:{boxWidth:11,font:{size:11}}}},
+    scales:{
+      x:{stacked,grid:{color:ix==="y"?"#f0ede6":"transparent"},ticks:{font:{size:11}}},
+      y:{stacked,grid:{color:ix==="x"?"#f0ede6":"transparent"},ticks:{font:{size:11}}}
+    },indexAxis:ix};
 }
-const allAges = [...D.idades.euploide, ...D.idades.aneuploide, ...D.idades.nao_classif].filter(v => v != null);
-const ageMin = Math.floor(Math.min(...allAges));
-const ageMax = Math.ceil(Math.max(...allAges));
-const BINS = 14;
-const binsEup = histBins(D.idades.euploide, ageMin, ageMax, BINS);
-const binsAne = histBins(D.idades.aneuploide, ageMin, ageMax, BINS);
-new Chart(document.getElementById("chart-idade"), {
-  type: "bar",
-  data: {
-    labels: binsEup.map(b => b.x + " a"),
-    datasets: [
-      { label: "Euploide",   data: binsEup.map(b => b.count), backgroundColor: C_EUP + "cc", borderRadius: 2 },
-      { label: "Aneuploide", data: binsAne.map(b => b.count), backgroundColor: C_ANE + "cc", borderRadius: 2 }
-    ]
-  },
-  options: {
-    responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { labels: { boxWidth: 12, font: { size: 12 } } } },
-    scales: {
-      x: { grid: { display: false }, title: { display: true, text: "Idade materna (anos)" } },
-      y: { grid: { color: "#f0ede6" }, title: { display: true, text: "Nº de embriões" } }
-    }
+
+function crossChart(id,data,ix="y"){
+  new Chart(document.getElementById(id),{
+    type:"bar",
+    data:{labels:data.map(r=>r.cat),
+           datasets:[
+             {label:"Euploide",  data:data.map(r=>r.eup),backgroundColor:C_EUP,borderRadius:3},
+             {label:"Aneuploide",data:data.map(r=>r.ane),backgroundColor:C_ANE,borderRadius:3},
+           ]},
+    options:bOpts(ix)
+  });
+}
+
+function statRows(tbId,groups,stDict,cols){
+  const tb=document.getElementById(tbId);
+  groups.forEach(([key,label,color])=>{
+    if(!stDict[key])return;
+    const st=stDict[key];
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td><span class="dot" style="background:${color}"></span>${label}</td>`
+      +cols.map(k=>`<td>${st[k]??"—"}</td>`).join("");
+    tb.appendChild(tr);
+  });
+}
+
+const GRP=[["todos","Todos",C_NAO],["euploide","Euploide",C_EUP],["aneuploide","Aneuploide",C_ANE]];
+
+// S1
+new Chart(document.getElementById("c-donut"),{
+  type:"doughnut",
+  data:{labels:["Euploide","Aneuploide","Não classificado"],
+         datasets:[{data:[D.n_eup,D.n_ane,D.n_nao],
+                    backgroundColor:[C_EUP,C_ANE,C_NAO],borderWidth:2,borderColor:"#fff"}]},
+  options:{responsive:true,maintainAspectRatio:false,cutout:"62%",
+    plugins:{legend:{position:"right",labels:{boxWidth:11,font:{size:11}}},
+              tooltip:{callbacks:{label:c=>`${c.label}: ${c.parsed.toLocaleString("pt-BR")} (${(c.parsed/D.total*100).toFixed(1)}%)`}}}
   }
 });
-
-// Tabela de idades
-const statusInfo = [
-  { key: "euploide",    label: "Euploide",         color: C_EUP },
-  { key: "aneuploide",  label: "Aneuploide",        color: C_ANE },
-  { key: "nao_classif", label: "Não classificado",  color: C_NAO },
-];
-const tbody = document.getElementById("tbody-idade");
-statusInfo.forEach(s => {
-  const st = D.idade_stats[s.key];
-  const tr = document.createElement("tr");
-  tr.innerHTML = `
-    <td><span class="dot" style="background:${s.color}"></span>${s.label}</td>
-    <td>${st.n.toLocaleString("pt-BR")}</td>
-    <td>${st.media}</td>
-    <td>${st.dp}</td>
-  `;
-  tbody.appendChild(tr);
+const mL=Object.keys(D.motivos),mV=Object.values(D.motivos);
+new Chart(document.getElementById("c-motivos"),{
+  type:"bar",
+  data:{labels:mL,datasets:[{label:"Embriões",data:mV,borderRadius:3,
+    backgroundColor:mL.map(l=>l.includes("Euploide")?C_EUP:l.includes("Aneuploide")?C_ANE:C_NAO)}]},
+  options:{...bOpts("y"),plugins:{legend:{display:false}}}
 });
 
-// ── DIAGNÓSTICOS ──────────────────────────────────────────────────────────────
-new Chart(document.getElementById("chart-diag"), {
-  type: "bar",
-  data: {
-    labels: D.diagnosticos.map(d => d.diag),
-    datasets: [
-      { label: "Euploide",   data: D.diagnosticos.map(d => d.euploide),  backgroundColor: C_EUP, borderRadius: 3 },
-      { label: "Aneuploide", data: D.diagnosticos.map(d => d.aneuploide),backgroundColor: C_ANE, borderRadius: 3 }
-    ]
-  },
-  options: {
-    indexAxis: "y",
-    responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { labels: { boxWidth: 12, font: { size: 12 } } } },
-    scales: {
-      x: { grid: { color: "#f0ede6" } },
-      y: { ticks: { font: { size: 12 } } }
-    }
-  }
+// S2
+new Chart(document.getElementById("c-unidade"),{
+  type:"bar",
+  data:{labels:D.unidades.map(u=>u.unidade),
+    datasets:[
+      {label:"Euploide",    data:D.unidades.map(u=>u.eup),backgroundColor:C_EUP,borderRadius:3},
+      {label:"Aneuploide",  data:D.unidades.map(u=>u.ane),backgroundColor:C_ANE,borderRadius:3},
+      {label:"Não classif.",data:D.unidades.map(u=>u.nao),backgroundColor:C_NAO,borderRadius:3},
+    ]},
+  options:bOpts("x")
 });
+
+new Chart(document.getElementById("c-age"),{
+  type:"bar",
+  data:{labels:D.age_bins_lbl.map(v=>v+" a"),
+    datasets:[
+      {label:"Euploide",  data:D.age_bins_eup,backgroundColor:C_EUP+"bb",borderRadius:2},
+      {label:"Aneuploide",data:D.age_bins_ane,backgroundColor:C_ANE+"bb",borderRadius:2},
+    ]},
+  options:{...bOpts("x"),scales:{
+    x:{grid:{display:false},title:{display:true,text:"Idade (anos)",font:{size:11}}},
+    y:{grid:{color:"#f0ede6"},title:{display:true,text:"Nº embriões",font:{size:11}}}
+  }}
+});
+statRows("tb-age",GRP,D.age_desc,["n","media","dp","med","mn","mx"]);
+
+new Chart(document.getElementById("c-bmi"),{
+  type:"bar",
+  data:{labels:D.bmi_bins_lbl.map(v=>v+""),
+    datasets:[
+      {label:"Euploide",  data:D.bmi_bins_eup,backgroundColor:C_EUP+"bb",borderRadius:2},
+      {label:"Aneuploide",data:D.bmi_bins_ane,backgroundColor:C_ANE+"bb",borderRadius:2},
+    ]},
+  options:{...bOpts("x"),scales:{
+    x:{grid:{display:false},ticks:{maxRotation:40,font:{size:10}},title:{display:true,text:"IMC (kg/m²)",font:{size:11}}},
+    y:{grid:{color:"#f0ede6"}}
+  }}
+});
+statRows("tb-bmi",GRP,D.bmi_desc,["n","media","dp","med","mn","mx"]);
+
+new Chart(document.getElementById("c-diag"),{
+  type:"bar",
+  data:{labels:D.diag_cross.map(r=>r.cat),
+    datasets:[
+      {label:"Euploide",  data:D.diag_cross.map(r=>r.eup),backgroundColor:C_EUP,borderRadius:3},
+      {label:"Aneuploide",data:D.diag_cross.map(r=>r.ane),backgroundColor:C_ANE,borderRadius:3},
+    ]},
+  options:bOpts("y")
+});
+
+// S3
+crossChart("c-src",  D.src_cross,  "y");
+crossChart("c-hist", D.hist_cross, "y");
+
+const pKeys=[...new Set([...Object.keys(D.prev_vc),...Object.keys(D.prev_eup_vc),...Object.keys(D.prev_ane_vc)])].sort((a,b)=>+a-+b);
+new Chart(document.getElementById("c-prev"),{
+  type:"bar",
+  data:{labels:pKeys.map(k=>"ET "+k),
+    datasets:[
+      {label:"Todos",     data:pKeys.map(k=>D.prev_vc[k]||0),    backgroundColor:C_NAO+"88",borderRadius:2},
+      {label:"Euploide",  data:pKeys.map(k=>D.prev_eup_vc[k]||0),backgroundColor:C_EUP+"bb",borderRadius:2},
+      {label:"Aneuploide",data:pKeys.map(k=>D.prev_ane_vc[k]||0),backgroundColor:C_ANE+"bb",borderRadius:2},
+    ]},
+  options:bOpts("x")
+});
+
+new Chart(document.getElementById("c-asp"),{
+  type:"bar",
+  data:{labels:D.asp_bins_lbl.map(v=>v+""),
+    datasets:[
+      {label:"Euploide",  data:D.asp_bins_eup,backgroundColor:C_EUP+"bb",borderRadius:2},
+      {label:"Aneuploide",data:D.asp_bins_ane,backgroundColor:C_ANE+"bb",borderRadius:2},
+    ]},
+  options:{...bOpts("x"),scales:{
+    x:{grid:{display:false},title:{display:true,text:"Oócitos aspirados",font:{size:11}}},
+    y:{grid:{color:"#f0ede6"}}
+  }}
+});
+statRows("tb-asp",GRP,D.asp_desc,["n","media","dp","med"]);
+
+// S4
+const mCols=D.morf_cols.filter(k=>D.morf_data[k]);
+const morfDesc={t2:"2 células",t3:"3 células",t4:"4 células",t5:"5 células",t8:"8 células",
+  tB:"Blastulação",tEB:"Blast. expandido",tHB:"Blast. eclosão",tM:"Mórula",
+  tPNa:"PN aparecimento",tPNf:"PN desaparecimento",tSB:"Compactação",tSC:"1ª clivagem"};
+
+new Chart(document.getElementById("c-morf"),{
+  type:"bar",
+  data:{labels:mCols,
+    datasets:[
+      {label:"Euploide",  data:mCols.map(k=>D.morf_data[k].eup_media),backgroundColor:C_EUP,borderRadius:3},
+      {label:"Aneuploide",data:mCols.map(k=>D.morf_data[k].ane_media),backgroundColor:C_ANE,borderRadius:3},
+    ]},
+  options:{...bOpts("x"),scales:{
+    x:{grid:{display:false}},
+    y:{grid:{color:"#f0ede6"},title:{display:true,text:"Horas após inseminação",font:{size:11}}}
+  }}
+});
+
+const tbM=document.getElementById("tb-morf");
+mCols.forEach(k=>{
+  const m=D.morf_data[k];
+  const tr=document.createElement("tr");
+  tr.innerHTML=`<td style="font-weight:500">${k}</td>
+    <td style="color:var(--muted);font-size:11px">${morfDesc[k]||""}</td>
+    <td>${m.eup_n}</td><td style="color:var(--eup)">${m.eup_media??"—"}</td><td>${m.eup_dp??"—"}</td>
+    <td>${m.ane_n}</td><td style="color:var(--ane)">${m.ane_media??"—"}</td><td>${m.ane_dp??"—"}</td>`;
+  tbM.appendChild(tr);
+});
+
+// S5
+crossChart("c-icm",   D.icm_cross,   "y");
+crossChart("c-te",    D.te_cross,    "y");
+crossChart("c-pn",    D.pn_cross,    "y");
+crossChart("c-frag2", D.frag2_cross, "y");
+crossChart("c-mn2",   D.mn2_cross,   "y");
+statRows("tb-frag",  GRP,D.frag_desc, ["n","media","dp","med"]);
+statRows("tb-reexp", GRP,D.reexp_desc,["n","media","dp","med"]);
 </script>
 </body>
 </html>
